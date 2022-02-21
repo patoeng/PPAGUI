@@ -37,7 +37,7 @@ namespace PPAGUI
             Tb_SetupAvailability.Text = "";
 
             this.WindowState = FormWindowState.Normal;
-            this.Size = new Size(810, 800);
+            this.Size = new Size(810, 860);
             MyTitle.Text = $"PCBA and Pump - {AppSettings.Resource}";
             ResourceGrouping.Values.Heading = $"Resource Status: {AppSettings.Resource}";
             ResourceSetupGrouping.Values.Heading = $"Resource Setup: {AppSettings.Resource}";
@@ -49,6 +49,7 @@ namespace PPAGUI
         #region INSTANCE VARIABLE
         private static GetMaintenanceStatusDetails[] oMaintenanceStatus = null;
         private static ServiceUtil oServiceUtil = new ServiceUtil();
+        private static DateTime dMoveIn;
         #endregion
 
         #region FUNCTION USEFULL
@@ -163,6 +164,8 @@ namespace PPAGUI
             {
                 if (oContainerStatus.MfgOrderName != null) Tb_PO.Text = oContainerStatus.MfgOrderName.ToString();
                 if (oContainerStatus.Operation != null) Tb_Operation.Text = oContainerStatus.Operation.Name.ToString();
+                dMoveIn = DateTime.Now;
+                Dt_MoveIn.Value = dMoveIn;
             }
         }
         private void Bt_StartMove_Click(object sender, EventArgs e)
@@ -177,10 +180,11 @@ namespace PPAGUI
                 CurrentContainerStatus oContainerStatus = oServiceUtil.GetContainerStatusDetails(Tb_SerialNumber.Text);
                 if (oContainerStatus.ContainerName != null)
                 {
-                    resultMoveIn = oServiceUtil.ExecuteMoveIn(oContainerStatus.ContainerName.Value, AppSettings.Resource);
+                    resultMoveIn = oServiceUtil.ExecuteMoveIn(oContainerStatus.ContainerName.Value, AppSettings.Resource, "", "", null, "", false, false, "", "", Convert.ToString(dMoveIn));
                     if (resultMoveIn)
                     {
-                        resultMoveStd = oServiceUtil.ExecuteMoveStd(oContainerStatus.ContainerName.Value, "", AppSettings.Resource, "Group of Manual Assy Data", "", cDataPoint);
+                        Dt_MoveOut.Value = DateTime.Now;
+                        resultMoveStd = oServiceUtil.ExecuteMoveStd(oContainerStatus.ContainerName.Value, "", AppSettings.Resource, "Pump & PCBA Assy Minime", "", cDataPoint, "", false, "", "", Convert.ToString(DateTime.Now));
                         if (resultMoveStd) MessageBox.Show("MoveIn and MoveStd success!");
                         else MessageBox.Show("Move In success and but Move Std Fail!");
                     }
