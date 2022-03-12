@@ -59,7 +59,6 @@ namespace PPAGUI
             this.Tb_SerialNumber = new ComponentFactory.Krypton.Toolkit.KryptonTextBox();
             this.Tb_Operation = new ComponentFactory.Krypton.Toolkit.KryptonTextBox();
             this.label11 = new System.Windows.Forms.Label();
-            this.Bt_FindContainer = new ComponentFactory.Krypton.Toolkit.KryptonButton();
             this.Tb_PCBASerialNumber = new ComponentFactory.Krypton.Toolkit.KryptonTextBox();
             this.TimerRealtime = new System.Windows.Forms.Timer(this.components);
 
