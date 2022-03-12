@@ -5,6 +5,8 @@ VisualStudioVersion = 16.0.31729.503
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PPAGUI", "PPAGUI\PPAGUI.csproj", "{4ADFD2FA-ADF0-4026-A78C-CE137AAB25D9}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MesData", "..\MesData\MesData\MesData.csproj", "{47A21ECB-4762-4320-8946-4A7226C0085B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +17,10 @@ Global
 		{4ADFD2FA-ADF0-4026-A78C-CE137AAB25D9}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4ADFD2FA-ADF0-4026-A78C-CE137AAB25D9}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{4ADFD2FA-ADF0-4026-A78C-CE137AAB25D9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{47A21ECB-4762-4320-8946-4A7226C0085B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{47A21ECB-4762-4320-8946-4A7226C0085B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{47A21ECB-4762-4320-8946-4A7226C0085B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{47A21ECB-4762-4320-8946-4A7226C0085B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -11,7 +11,9 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using Camstar.WCF.ObjectStack;
 using ComponentFactory.Krypton.Toolkit;
+using MesData;
 using OpcenterWikLibrary;
+using PPAGUI.Enumeration;
 
 namespace PPAGUI
 {
@@ -29,55 +31,166 @@ namespace PPAGUI
             gp.AddArc(r.X + r.Width - d, r.Y + r.Height - d, d, d, 0, 90);
             gp.AddArc(r.X, r.Y + r.Height - d, d, d, 90, 90);
             Pb_IndicatorPicture.Region = new Region(gp);
-            GetResourceStatusCodeList();
-            GetStatusOfResource();
-            GetStatusMaintenanceDetails();
-            Cb_StatusCode.SelectedItem = null;
-            Cb_StatusReason.SelectedItem = null;
-            Tb_SetupAvailability.Text = "";
 
-            this.WindowState = FormWindowState.Normal;
-            this.Size = new Size(810, 800);
-            MyTitle.Text = $"PCBA and Pump - {AppSettings.Resource}";
-            ResourceGrouping.Values.Heading = $"Resource Status: {AppSettings.Resource}";
-            ResourceSetupGrouping.Values.Heading = $"Resource Setup: {AppSettings.Resource}";
-            ResourceDataGroup.Values.Heading = $"Resource Data Collection: {AppSettings.Resource}";
-            AddVersionNumber();
+#if MiniMe
+            var  name = "Pump & PCBA Assy Minime";
+            Text = Mes.AddVersionNumber(Text + " MiniMe");
+#elif Ariel
+            var  name = "Pump & PCBA Assy Ariel";
+            Text = Mes.AddVersionNumber(Text + " Ariel");
+#endif
+            _mesData = new Mes(name);
+
+            WindowState = FormWindowState.Normal;
+            Size = new Size(820, 810);
+            MyTitle.Text = $@"PCBA and Pump - {AppSettings.Resource}";
+            ResourceGrouping.Values.Heading = $@"Resource Status: {AppSettings.Resource}";
+            ResourceDataGroup.Values.Heading = $@"Resource Data Collection: {AppSettings.Resource}";
+            Text = Mes.AddVersionNumber(Text);
+          
         }
-        #endregion
 
-        #region INSTANCE VARIABLE
-        private static GetMaintenanceStatusDetails[] oMaintenanceStatus = null;
-        private static ServiceUtil oServiceUtil = new ServiceUtil();
-        #endregion
+#endregion
 
-        #region FUNCTION USEFULL
-        private void AddVersionNumber()
+#region INSTANCE VARIABLE
+      
+        private PPAState _ppaState;
+        private readonly Mes _mesData;
+        private DateTime _dMoveIn;
+
+#endregion
+
+#region FUNCTION USEFULL
+        
+        private async Task SetPpaState(PPAState newPpaState)
         {
-            System.Reflection.Assembly assembly = System.Reflection.Assembly.GetExecutingAssembly();
-            FileVersionInfo versionInfo = FileVersionInfo.GetVersionInfo(assembly.Location);
-
-            this.Text += $" V.{versionInfo.FileVersion}";
-        }
-        #endregion
-
-        #region FUNCTION STATUS OF RESOURCE
-        private void GetResourceStatusCodeList()
-        {
-            NamedObjectRef[] oStatusCodeList = oServiceUtil.GetListResourceStatusCode();
-            if (oStatusCodeList != null)
+            _ppaState = newPpaState;
+            switch (_ppaState)
             {
-                Cb_StatusCode.DataSource = oStatusCodeList;
+                case PPAState.PlaceUnit:
+                    Tb_Scanner.Enabled = false;
+                    lblCommand.ForeColor = Color.Red;
+                    lblCommand.Text = "Resource is not in \"Up\" condition!";
+                    break;
+                case PPAState.ScanUnitSerialNumber:
+                    Tb_SerialNumber.Clear();
+                    Tb_PCBASerialNumber.Clear();
+                    Tb_PumpSerialNumber.Clear();
+                    Tb_Operation.Clear();
+                    Tb_ContainerPosition.Clear();
+                    Tb_PO.Clear();
+
+                    if (_mesData.ResourceStatusDetails == null || _mesData.ResourceStatusDetails?.Availability != "Up")
+                    {
+                        await SetPpaState(PPAState.PlaceUnit);
+                        break;
+                    }
+
+                    Tb_Scanner.Enabled = true;
+                    lblCommand.ForeColor = Color.LimeGreen;
+                    lblCommand.Text = "Scan Unit Serial Number!";
+                    ActiveControl = Tb_Scanner;
+                    break;
+                case PPAState.CheckUnitStatus:
+                    Tb_Scanner.Enabled = false;
+                    lblCommand.Text = "Checking Unit Status";
+                    var oContainerStatus = await Mes.GetContainerStatusDetails(_mesData,Tb_SerialNumber.Text,_mesData.DataCollectionName);
+                    Tb_ContainerPosition.Text = await Mes.GetCurrentContainerStep(_mesData, Tb_SerialNumber.Text);
+                    if (oContainerStatus != null)
+                    {
+                        if (oContainerStatus.MfgOrderName != null) Tb_PO.Text = oContainerStatus.MfgOrderName.ToString();
+                        if (oContainerStatus.Operation != null)
+                        {
+                            Tb_Operation.Text = oContainerStatus.Operation.Name;
+                            if (oContainerStatus.Operation.Name != _mesData.DataCollectionName)
+                            {
+                                await SetPpaState(PPAState.WrongOperation);
+                                break;
+                            }
+                        }
+                        _dMoveIn = DateTime.Now;
+                        await SetPpaState(PPAState.ScanPcbaSerialNumber);
+                        break;
+                    }
+                    await SetPpaState(PPAState.UnitNotFound);
+                    break;
+                case PPAState.UnitNotFound:
+                    Tb_Scanner.Enabled = false;
+                    lblCommand.ForeColor = Color.Red;
+                    lblCommand.Text = "Unit Not Found";
+                    break;
+                case PPAState.ScanPcbaSerialNumber:
+                    Tb_Scanner.Enabled = true;
+                    lblCommand.Text = "Scan PCBA Serial Number!";
+                    break;
+                case PPAState.ScanPumpSerialNumber:
+                    Tb_Scanner.Enabled = true;
+                    lblCommand.Text = "Scan Pump Serial Number!";
+                    break;
+                case PPAState.Done:
+                    break;
+                case PPAState.UpdateMoveInMove:
+                    Tb_Scanner.Enabled = false;
+                    lblCommand.Text = "Container Move In";
+                    /*Move In, Move*/
+                    try
+                    {
+                        var cDataPoint = new DataPointDetails[2];
+                        cDataPoint[0] = new DataPointDetails { DataName = "PCBA Serial Number", DataValue = Tb_PCBASerialNumber.Text != "" ? Tb_PCBASerialNumber.Text : "NA", DataType = DataTypeEnum.String };
+                        cDataPoint[1] = new DataPointDetails { DataName = "Pump Serial Number", DataValue = Tb_PumpSerialNumber.Text != "" ? Tb_PumpSerialNumber.Text : "NA", DataType = DataTypeEnum.String };
+                        oContainerStatus = await Mes.GetContainerStatusDetails(_mesData,Tb_SerialNumber.Text);
+                        if (oContainerStatus.ContainerName != null)
+                        {
+                            var resultMoveIn = await Mes.ExecuteMoveIn(_mesData, oContainerStatus.ContainerName.Value,_dMoveIn);
+                            if (resultMoveIn)
+                            {
+                                lblCommand.Text = "Container Move Standard";
+                                var resultMoveStd = await Mes.ExecuteMoveStandard(_mesData, oContainerStatus.ContainerName.Value, DateTime.Now, cDataPoint);
+                                await SetPpaState(resultMoveStd
+                                    ? PPAState.ScanUnitSerialNumber
+                                    : PPAState.MoveInOkMoveFail);
+                            }
+                            else await SetPpaState(PPAState.MoveInFail);
+                        }
+                        else await SetPpaState(PPAState.UnitNotFound);
+                    }
+                    catch (Exception ex)
+                    {
+                        ex.Source = typeof(Program).Assembly.GetName().Name == ex.Source ? MethodBase.GetCurrentMethod()?.Name : MethodBase.GetCurrentMethod()?.Name + "." + ex.Source;
+                        EventLogUtil.LogErrorEvent(ex.Source, ex);
+                    }
+                    break;
+                case PPAState.MoveSuccess:
+                    break;
+                case PPAState.MoveInOkMoveFail:
+                    lblCommand.ForeColor = Color.Red;
+                    Tb_Scanner.Enabled = false;
+                    lblCommand.Text = "Container Move Standard Fail";
+                    break;
+                case PPAState.MoveInFail:
+                    lblCommand.ForeColor = Color.Red;
+                    Tb_Scanner.Enabled = false;
+                    lblCommand.Text = "Container Move In Fail";
+                    break;
+                case PPAState.WrongOperation:
+                    lblCommand.ForeColor = Color.Red;
+                    Tb_Scanner.Enabled = false;
+                    lblCommand.Text = @"Incorrect Container Operation";
+                    break;
             }
         }
-        private void GetStatusMaintenanceDetails()
+#endregion
+
+#region FUNCTION STATUS OF RESOURCE
+
+        private async Task GetStatusMaintenanceDetails()
         {
             try
             {
-                oMaintenanceStatus = oServiceUtil.GetGetMaintenanceStatus(AppSettings.Resource);
-                if (oMaintenanceStatus != null)
+                var maintenanceStatusDetails = await Mes.GetMaintenanceStatusDetails(_mesData);
+                if (maintenanceStatusDetails != null)
                 {
-                    Dg_Maintenance.DataSource = oMaintenanceStatus;
+                    Dg_Maintenance.DataSource = maintenanceStatusDetails;
                     Dg_Maintenance.Columns["Due"].Visible = false;
                     Dg_Maintenance.Columns["Warning"].Visible = false;
                     Dg_Maintenance.Columns["PastDue"].Visible = false;
@@ -111,27 +224,29 @@ namespace PPAGUI
             }
             catch (Exception ex)
             {
-                ex.Source = typeof(Program).Assembly.GetName().Name == ex.Source ? MethodBase.GetCurrentMethod().Name : MethodBase.GetCurrentMethod().Name + "." + ex.Source;
+                ex.Source = AppSettings.AssemblyName == ex.Source ? MethodBase.GetCurrentMethod()?.Name : MethodBase.GetCurrentMethod()?.Name + "." + ex.Source;
                 EventLogUtil.LogErrorEvent(ex.Source, ex);
             }
         }
-        private void GetStatusOfResource()
+        private async Task GetStatusOfResource()
         {
             try
             {
-                ResourceStatusDetails oResourceStatusDetails = oServiceUtil.GetResourceStatusDetails(AppSettings.Resource);
-                if (oResourceStatusDetails != null)
+                var resourceStatus = await Mes.GetResourceStatusDetails(_mesData);
+                _mesData.SetResourceStatusDetails(resourceStatus);
+
+                if (resourceStatus != null)
                 {
-                    if (oResourceStatusDetails.Status != null) Tb_StatusCode.Text = oResourceStatusDetails.Status.Name;
-                    if (oResourceStatusDetails.Reason != null) Tb_StatusReason.Text = oResourceStatusDetails.Reason.Name;
-                    if (oResourceStatusDetails.Availability != null)
+                    if (resourceStatus.Status != null) Tb_StatusCode.Text = resourceStatus.Status.Name;
+                    if (resourceStatus.Reason != null) Tb_StatusReason.Text = resourceStatus.Reason.Name;
+                    if (resourceStatus.Availability != null)
                     {
-                        Tb_Availability.Text = oResourceStatusDetails.Availability.Value;
-                        if (oResourceStatusDetails.Availability.Value == "Up")
+                        Tb_Availability.Text = resourceStatus.Availability.Value;
+                        if (resourceStatus.Availability.Value == "Up")
                         {
                             Pb_IndicatorPicture.BackColor = Color.Green;
                         }
-                        else if (oResourceStatusDetails.Availability.Value == "Down")
+                        else if (resourceStatus.Availability.Value == "Down")
                         {
                             Pb_IndicatorPicture.BackColor = Color.Red;
                         }
@@ -140,146 +255,74 @@ namespace PPAGUI
                     {
                         Pb_IndicatorPicture.BackColor = Color.Orange;
                     }
-                    if (oResourceStatusDetails.TimeAtStatus != null) Tb_TimeAtStatus.Text = Convert.ToString(oResourceStatusDetails.TimeAtStatus.Value);
-                }
-            }
-            catch (Exception ex)
-            {
-                ex.Source = typeof(Program).Assembly.GetName().Name == ex.Source ? MethodBase.GetCurrentMethod().Name : MethodBase.GetCurrentMethod().Name + "." + ex.Source;
-                EventLogUtil.LogErrorEvent(ex.Source, ex);
-            }
-        }
-        #endregion
 
-        #region COMPONENT EVENT
-        private void Bt_FindContainer_Click(object sender, EventArgs e)
-        {
-            Tb_Operation.Clear();
-            Tb_PO.Clear();
-            Tb_ContainerPosition.Clear();
-            CurrentContainerStatus oContainerStatus = oServiceUtil.GetContainerStatusDetails(Tb_SerialNumber.Text);
-            Tb_ContainerPosition.Text = oServiceUtil.GetCurrentContainerStep(Tb_SerialNumber.Text);
-            if (oContainerStatus != null)
-            {
-                if (oContainerStatus.MfgOrderName != null) Tb_PO.Text = oContainerStatus.MfgOrderName.ToString();
-                if (oContainerStatus.Operation != null) Tb_Operation.Text = oContainerStatus.Operation.Name.ToString();
-            }
-        }
-        private void Bt_StartMove_Click(object sender, EventArgs e)
-        {
-            try
-            {
-                bool resultMoveIn = false;
-                bool resultMoveStd = false;
-                Camstar.WCF.ObjectStack.DataPointDetails[] cDataPoint = new Camstar.WCF.ObjectStack.DataPointDetails[2];
-                cDataPoint[0] = new Camstar.WCF.ObjectStack.DataPointDetails() { DataName = "PCBA Serial Number", DataValue = Tb_PCBASerialNumber.Text != "" ? Tb_PCBASerialNumber.Text : "NA", DataType = DataTypeEnum.String };
-                cDataPoint[1] = new Camstar.WCF.ObjectStack.DataPointDetails() { DataName = "Pump Serial Number", DataValue = Tb_PumpSerialNumber.Text != "" ? Tb_PumpSerialNumber.Text : "NA", DataType = DataTypeEnum.String };
-                CurrentContainerStatus oContainerStatus = oServiceUtil.GetContainerStatusDetails(Tb_SerialNumber.Text);
-                if (oContainerStatus.ContainerName != null)
-                {
-                    resultMoveIn = oServiceUtil.ExecuteMoveIn(oContainerStatus.ContainerName.Value, AppSettings.Resource);
-                    if (resultMoveIn)
-                    {
-                        resultMoveStd = oServiceUtil.ExecuteMoveStd(oContainerStatus.ContainerName.Value, "", AppSettings.Resource, "Group of Manual Assy Data", "", cDataPoint);
-                        if (resultMoveStd) MessageBox.Show("MoveIn and MoveStd success!");
-                        else MessageBox.Show("Move In success and but Move Std Fail!");
-                    }
-                    else MessageBox.Show("Move In and Move Std Fail!");
-                }
-                else MessageBox.Show($"Container {Tb_SerialNumber.Text} not found!");
-            }
-            catch (Exception ex)
-            {
-                ex.Source = typeof(Program).Assembly.GetName().Name == ex.Source ? MethodBase.GetCurrentMethod().Name : MethodBase.GetCurrentMethod().Name + "." + ex.Source;
-                EventLogUtil.LogErrorEvent(ex.Source, ex);
-            }
-        }
-        private void Cb_StatusCode_SelectedIndexChanged(object sender, EventArgs e)
-        {
-            try
-            {
-                ResourceStatusCodeChanges oStatusCode = oServiceUtil.GetResourceStatusCode(Cb_StatusCode.SelectedValue != null ? Cb_StatusCode.SelectedValue.ToString() : "");
-                if (oStatusCode != null)
-                {
-                    Tb_SetupAvailability.Text = oStatusCode.Availability.ToString();
-                    if (oStatusCode.ResourceStatusReasons != null)
-                    {
-                        ResStatusReasonGroupChanges oStatusReason = oServiceUtil.GetResourceStatusReasonGroup(oStatusCode.ResourceStatusReasons.Name);
-                        Cb_StatusReason.DataSource = oStatusReason.Entries;
-                    }
-                    else
-                    {
-                        Cb_StatusReason.Items.Clear();
-                    }
+                    if (resourceStatus.TimeAtStatus != null)
+                        Tb_TimeAtStatus.Text =
+                            $@"{DateTime.FromOADate(resourceStatus.TimeAtStatus.Value) - Mes.ZeroEpoch():G}";
                 }
             }
             catch (Exception ex)
             {
-                ex.Source = typeof(Program).Assembly.GetName().Name == ex.Source ? MethodBase.GetCurrentMethod().Name : MethodBase.GetCurrentMethod().Name + "." + ex.Source;
+                ex.Source = AppSettings.AssemblyName == ex.Source ? MethodBase.GetCurrentMethod()?.Name : MethodBase.GetCurrentMethod()?.Name + "." + ex.Source;
                 EventLogUtil.LogErrorEvent(ex.Source, ex);
             }
         }
-        private void Bt_SetResourceStatus_Click(object sender, EventArgs e)
+#endregion
+
+#region COMPONENT EVENT
+
+        private async void TimerRealtime_Tick(object sender, EventArgs e)
         {
-            try
-            {
-                if (Cb_StatusCode.Text != "" && Cb_StatusReason.Text != "")
-                {
-                    oServiceUtil.ExecuteResourceSetup(AppSettings.Resource, Cb_StatusCode.Text, Cb_StatusReason.Text);
-                }
-                else if (Cb_StatusCode.Text != "")
-                {
-                    oServiceUtil.ExecuteResourceSetup(AppSettings.Resource, Cb_StatusCode.Text, "");
-                }
-                GetStatusOfResource();
-                GetStatusMaintenanceDetails();
-            }
-            catch (Exception ex)
-            {
-                ex.Source = typeof(Program).Assembly.GetName().Name == ex.Source ? MethodBase.GetCurrentMethod().Name : MethodBase.GetCurrentMethod().Name + "." + ex.Source;
-                EventLogUtil.LogErrorEvent(ex.Source, ex);
-            }
+            await GetStatusOfResource();
+            await GetStatusMaintenanceDetails();
         }
-        private void Dg_Maintenance_CellFormatting(object sender, DataGridViewCellFormattingEventArgs e)
+        private async void btnResetState_Click(object sender, EventArgs e)
         {
-            try
+            await SetPpaState(PPAState.ScanUnitSerialNumber);
+            Tb_Scanner.Focus();
+        }
+
+        private async void Tb_Scanner_KeyUp(object sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.Enter)
             {
-                foreach (DataGridViewRow row in Dg_Maintenance.Rows)
-                {
-                    //Console.WriteLine(Convert.ToString(row.Cells["MaintenanceState"].Value));
-                    if (Convert.ToString(row.Cells["MaintenanceState"].Value) == "Pending")
+                if (string.IsNullOrEmpty(Tb_Scanner.Text))return;
+                    switch (_ppaState)
                     {
-                        row.DefaultCellStyle.BackColor = Color.Yellow;
+                        case PPAState.ScanUnitSerialNumber:
+                            Tb_SerialNumber.Text = Tb_Scanner.Text.Trim();
+                            Tb_Scanner.Clear();
+                            Tb_Operation.Clear();
+                            Tb_PO.Clear();
+                            Tb_ContainerPosition.Clear();
+                            await SetPpaState(PPAState.CheckUnitStatus);
+                            break;
+                        case PPAState.ScanPcbaSerialNumber:
+                            Tb_PCBASerialNumber.Text = Tb_Scanner.Text.Trim();
+                            Tb_Scanner.Clear();
+                            await SetPpaState(PPAState.ScanPumpSerialNumber);
+                            break;
+                        case PPAState.ScanPumpSerialNumber:
+                            Tb_PumpSerialNumber.Text = Tb_Scanner.Text.Trim();
+                            Tb_Scanner.Clear();
+                            await SetPpaState(PPAState.UpdateMoveInMove);
+                            break;
                     }
-                    else if (Convert.ToString(row.Cells["MaintenanceState"].Value) == "Due")
-                    {
-                        row.DefaultCellStyle.BackColor = Color.Orange;
-                    }
-                    else if (Convert.ToString(row.Cells["MaintenanceState"].Value) == "Past Due")
-                    {
-                        row.DefaultCellStyle.BackColor = Color.Red;
-                    }
-                }
             }
-            catch (Exception ex)
-            {
-                ex.Source = typeof(Program).Assembly.GetName().Name == ex.Source ? MethodBase.GetCurrentMethod().Name : MethodBase.GetCurrentMethod().Name + "." + ex.Source;
-                EventLogUtil.LogErrorEvent(ex.Source, ex);
-            }
         }
-        private void TimerRealtime_Tick(object sender, EventArgs e)
+#endregion
+
+        private async void Main_Load(object sender, EventArgs e)
         {
-            GetStatusOfResource();
-            GetStatusMaintenanceDetails();
+            await GetStatusOfResource();
+            await GetStatusMaintenanceDetails();
+            await SetPpaState(PPAState.ScanUnitSerialNumber);
         }
-        private void Cb_StatusCode_KeyPress(object sender, KeyPressEventArgs e)
+
+        private async void btnResourceSetup_Click(object sender, EventArgs e)
         {
-            e.Handled = true;
+            Mes.ResourceSetupForm(this,_mesData, MyTitle.Text);
+            await GetStatusOfResource();
         }
-        private void Cb_StatusReason_KeyPress(object sender, KeyPressEventArgs e)
-        {
-            e.Handled = true;
-        }
-        #endregion
     }
 }
