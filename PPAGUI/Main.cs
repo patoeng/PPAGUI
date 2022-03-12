@@ -32,6 +32,7 @@ namespace PPAGUI
             gp.AddArc(r.X, r.Y + r.Height - d, d, d, 90, 90);
             Pb_IndicatorPicture.Region = new Region(gp);
 
+
 #if MiniMe
             var  name = "Pump & PCBA Assy Minime";
             Text = Mes.AddVersionNumber(Text + " MiniMe");
@@ -49,6 +50,7 @@ namespace PPAGUI
             Text = Mes.AddVersionNumber(Text);
           
         }
+
 
 #endregion
 
@@ -259,6 +261,7 @@ namespace PPAGUI
                     if (resourceStatus.TimeAtStatus != null)
                         Tb_TimeAtStatus.Text =
                             $@"{DateTime.FromOADate(resourceStatus.TimeAtStatus.Value) - Mes.ZeroEpoch():G}";
+
                 }
             }
             catch (Exception ex)

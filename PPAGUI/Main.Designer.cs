@@ -45,10 +45,12 @@ namespace PPAGUI
             this.label1 = new System.Windows.Forms.Label();
             this.label5 = new System.Windows.Forms.Label();
             this.ResourceDataGroup = new ComponentFactory.Krypton.Toolkit.KryptonGroupBox();
+
             this.btnResetState = new ComponentFactory.Krypton.Toolkit.KryptonButton();
             this.label2 = new System.Windows.Forms.Label();
             this.label30 = new System.Windows.Forms.Label();
             this.Tb_PO = new ComponentFactory.Krypton.Toolkit.KryptonTextBox();
+
             this.Tb_ContainerPosition = new ComponentFactory.Krypton.Toolkit.KryptonTextBox();
             this.Tb_PumpSerialNumber = new ComponentFactory.Krypton.Toolkit.KryptonTextBox();
             this.label7 = new System.Windows.Forms.Label();
@@ -57,12 +59,15 @@ namespace PPAGUI
             this.Tb_SerialNumber = new ComponentFactory.Krypton.Toolkit.KryptonTextBox();
             this.Tb_Operation = new ComponentFactory.Krypton.Toolkit.KryptonTextBox();
             this.label11 = new System.Windows.Forms.Label();
+            this.Bt_FindContainer = new ComponentFactory.Krypton.Toolkit.KryptonButton();
             this.Tb_PCBASerialNumber = new ComponentFactory.Krypton.Toolkit.KryptonTextBox();
             this.TimerRealtime = new System.Windows.Forms.Timer(this.components);
+
             this.kryptonGroupBox1 = new ComponentFactory.Krypton.Toolkit.KryptonGroupBox();
             this.lblCommand = new System.Windows.Forms.Label();
             this.Tb_Scanner = new ComponentFactory.Krypton.Toolkit.KryptonTextBox();
             this.btnResourceSetup = new ComponentFactory.Krypton.Toolkit.KryptonButton();
+
             ((System.ComponentModel.ISupportInitialize)(this.Logo)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.ResourceGrouping)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.ResourceGrouping.Panel)).BeginInit();
@@ -117,6 +122,7 @@ namespace PPAGUI
             this.MyTitle.AutoSize = true;
             this.MyTitle.Font = new System.Drawing.Font("Segoe UI Black", 20F, System.Drawing.FontStyle.Bold);
             this.MyTitle.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(46)))), ((int)(((byte)(68)))), ((int)(((byte)(101)))));
+
             this.MyTitle.Location = new System.Drawing.Point(20, 38);
             this.MyTitle.Margin = new System.Windows.Forms.Padding(6, 0, 6, 0);
             this.MyTitle.Name = "MyTitle";
@@ -137,6 +143,7 @@ namespace PPAGUI
             // 
             // ResourceGrouping
             // 
+
             this.ResourceGrouping.Location = new System.Drawing.Point(32, 181);
             this.ResourceGrouping.Margin = new System.Windows.Forms.Padding(6);
             this.ResourceGrouping.Name = "ResourceGrouping";
@@ -352,13 +359,17 @@ namespace PPAGUI
             // 
             this.ResourceDataGroup.Location = new System.Drawing.Point(34, 812);
             this.ResourceDataGroup.Margin = new System.Windows.Forms.Padding(6);
+
             this.ResourceDataGroup.Name = "ResourceDataGroup";
             // 
             // ResourceDataGroup.Panel
             // 
             this.ResourceDataGroup.Panel.Controls.Add(this.btnResetState);
             this.ResourceDataGroup.Panel.Controls.Add(this.label2);
+            this.ResourceDataGroup.Panel.Controls.Add(this.Dt_MoveOut);
+            this.ResourceDataGroup.Panel.Controls.Add(this.label6);
             this.ResourceDataGroup.Panel.Controls.Add(this.label30);
+            this.ResourceDataGroup.Panel.Controls.Add(this.Dt_MoveIn);
             this.ResourceDataGroup.Panel.Controls.Add(this.Tb_PO);
             this.ResourceDataGroup.Panel.Controls.Add(this.Tb_ContainerPosition);
             this.ResourceDataGroup.Panel.Controls.Add(this.Tb_PumpSerialNumber);
@@ -486,7 +497,8 @@ namespace PPAGUI
             this.Tb_PO.StateCommon.Back.Color1 = System.Drawing.Color.White;
             this.Tb_PO.StateCommon.Border.Color1 = System.Drawing.Color.FromArgb(((int)(((byte)(224)))), ((int)(((byte)(224)))), ((int)(((byte)(224)))));
             this.Tb_PO.StateCommon.Border.Color2 = System.Drawing.Color.FromArgb(((int)(((byte)(224)))), ((int)(((byte)(224)))), ((int)(((byte)(224)))));
-            this.Tb_PO.StateCommon.Border.DrawBorders = ((ComponentFactory.Krypton.Toolkit.PaletteDrawBorders)((((ComponentFactory.Krypton.Toolkit.PaletteDrawBorders.Top | ComponentFactory.Krypton.Toolkit.PaletteDrawBorders.Bottom) 
+            this.Tb_PO.StateCommon.Border.DrawBorders = ((ComponentFactory.Krypton.Toolkit.PaletteDrawBorders)((((ComponentFactory.Krypton.Toolkit.PaletteDrawBorders.Top 
+			| ComponentFactory.Krypton.Toolkit.PaletteDrawBorders.Bottom) 
             | ComponentFactory.Krypton.Toolkit.PaletteDrawBorders.Left) 
             | ComponentFactory.Krypton.Toolkit.PaletteDrawBorders.Right)));
             this.Tb_PO.StateCommon.Border.GraphicsHint = ComponentFactory.Krypton.Toolkit.PaletteGraphicsHint.AntiAlias;
@@ -509,6 +521,25 @@ namespace PPAGUI
             | ComponentFactory.Krypton.Toolkit.PaletteDrawBorders.Left) 
             | ComponentFactory.Krypton.Toolkit.PaletteDrawBorders.Right)));
             this.Tb_ContainerPosition.StateCommon.Border.GraphicsHint = ComponentFactory.Krypton.Toolkit.PaletteGraphicsHint.AntiAlias;
+            this.Tb_ContainerPosition.StateCommon.Border.Rounding = 20;
+            this.Tb_ContainerPosition.StateCommon.Border.Width = 1;
+            this.Tb_ContainerPosition.StateCommon.Content.Color1 = System.Drawing.Color.Gray;
+            this.Tb_ContainerPosition.TabIndex = 82;
+            // 
+            // Tb_ContainerPosition
+            // 
+            this.Tb_ContainerPosition.Enabled = false;
+            this.Tb_ContainerPosition.Location = new System.Drawing.Point(396, 37);
+            this.Tb_ContainerPosition.Name = "Tb_ContainerPosition";
+            this.Tb_ContainerPosition.Size = new System.Drawing.Size(184, 35);
+            this.Tb_ContainerPosition.StateCommon.Back.Color1 = System.Drawing.Color.White;
+            this.Tb_ContainerPosition.StateCommon.Border.Color1 = System.Drawing.Color.FromArgb(((int)(((byte)(224)))), ((int)(((byte)(224)))), ((int)(((byte)(224)))));
+            this.Tb_ContainerPosition.StateCommon.Border.Color2 = System.Drawing.Color.FromArgb(((int)(((byte)(224)))), ((int)(((byte)(224)))), ((int)(((byte)(224)))));
+            this.Tb_ContainerPosition.StateCommon.Border.DrawBorders = ((ComponentFactory.Krypton.Toolkit.PaletteDrawBorders)((((ComponentFactory.Krypton.Toolkit.PaletteDrawBorders.Top | ComponentFactory.Krypton.Toolkit.PaletteDrawBorders.Bottom) 
+            | ComponentFactory.Krypton.Toolkit.PaletteDrawBorders.Left) 
+            | ComponentFactory.Krypton.Toolkit.PaletteDrawBorders.Right)));
+            this.Tb_ContainerPosition.StateCommon.Border.GraphicsHint = ComponentFactory.Krypton.Toolkit.PaletteGraphicsHint.AntiAlias;
+            this.Tb_ContainerPosition.StateCommon.Border.ImageStyle = ComponentFactory.Krypton.Toolkit.PaletteImageStyle.Inherit;
             this.Tb_ContainerPosition.StateCommon.Border.Rounding = 20;
             this.Tb_ContainerPosition.StateCommon.Border.Width = 1;
             this.Tb_ContainerPosition.StateCommon.Content.Color1 = System.Drawing.Color.Gray;
@@ -767,6 +798,96 @@ namespace PPAGUI
             this.btnResourceSetup.TabIndex = 84;
             this.btnResourceSetup.Values.Text = "SETUP";
             this.btnResourceSetup.Click += new System.EventHandler(this.btnResourceSetup_Click);
+            // 
+            // Tb_PCBASerialNumber
+            // 
+            this.Tb_PCBASerialNumber.Location = new System.Drawing.Point(11, 97);
+            this.Tb_PCBASerialNumber.Name = "Tb_PCBASerialNumber";
+            this.Tb_PCBASerialNumber.Size = new System.Drawing.Size(164, 35);
+            this.Tb_PCBASerialNumber.StateCommon.Back.Color1 = System.Drawing.Color.White;
+            this.Tb_PCBASerialNumber.StateCommon.Border.Color1 = System.Drawing.Color.Black;
+            this.Tb_PCBASerialNumber.StateCommon.Border.Color2 = System.Drawing.Color.Black;
+            this.Tb_PCBASerialNumber.StateCommon.Border.DrawBorders = ((ComponentFactory.Krypton.Toolkit.PaletteDrawBorders)((((ComponentFactory.Krypton.Toolkit.PaletteDrawBorders.Top | ComponentFactory.Krypton.Toolkit.PaletteDrawBorders.Bottom) 
+            | ComponentFactory.Krypton.Toolkit.PaletteDrawBorders.Left) 
+            | ComponentFactory.Krypton.Toolkit.PaletteDrawBorders.Right)));
+            this.Tb_PCBASerialNumber.StateCommon.Border.GraphicsHint = ComponentFactory.Krypton.Toolkit.PaletteGraphicsHint.AntiAlias;
+            this.Tb_PCBASerialNumber.StateCommon.Border.ImageStyle = ComponentFactory.Krypton.Toolkit.PaletteImageStyle.Inherit;
+            this.Tb_PCBASerialNumber.StateCommon.Border.Rounding = 20;
+            this.Tb_PCBASerialNumber.StateCommon.Border.Width = 1;
+            this.Tb_PCBASerialNumber.StateCommon.Content.Color1 = System.Drawing.Color.Gray;
+            this.Tb_PCBASerialNumber.TabIndex = 43;
+            // 
+            // TimerRealtime
+            // 
+            this.TimerRealtime.Enabled = true;
+            this.TimerRealtime.Interval = 10000;
+            this.TimerRealtime.Tick += new System.EventHandler(this.TimerRealtime_Tick);
+            // 
+            // Dt_MoveIn
+            // 
+            this.Dt_MoveIn.CalendarTodayDate = new System.DateTime(2021, 12, 29, 0, 0, 0, 0);
+            this.Dt_MoveIn.CustomFormat = "yyyy-MM-dd hh:mm:ss tt";
+            this.Dt_MoveIn.Enabled = false;
+            this.Dt_MoveIn.Format = System.Windows.Forms.DateTimePickerFormat.Custom;
+            this.Dt_MoveIn.Location = new System.Drawing.Point(11, 159);
+            this.Dt_MoveIn.Name = "Dt_MoveIn";
+            this.Dt_MoveIn.PaletteMode = ComponentFactory.Krypton.Toolkit.PaletteMode.ProfessionalSystem;
+            this.Dt_MoveIn.ShowUpDown = true;
+            this.Dt_MoveIn.Size = new System.Drawing.Size(173, 33);
+            this.Dt_MoveIn.StateCommon.Border.Color1 = System.Drawing.Color.FromArgb(((int)(((byte)(224)))), ((int)(((byte)(224)))), ((int)(((byte)(224)))));
+            this.Dt_MoveIn.StateCommon.Border.Color2 = System.Drawing.Color.FromArgb(((int)(((byte)(224)))), ((int)(((byte)(224)))), ((int)(((byte)(224)))));
+            this.Dt_MoveIn.StateCommon.Border.DrawBorders = ((ComponentFactory.Krypton.Toolkit.PaletteDrawBorders)((((ComponentFactory.Krypton.Toolkit.PaletteDrawBorders.Top | ComponentFactory.Krypton.Toolkit.PaletteDrawBorders.Bottom) 
+            | ComponentFactory.Krypton.Toolkit.PaletteDrawBorders.Left) 
+            | ComponentFactory.Krypton.Toolkit.PaletteDrawBorders.Right)));
+            this.Dt_MoveIn.StateCommon.Border.GraphicsHint = ComponentFactory.Krypton.Toolkit.PaletteGraphicsHint.AntiAlias;
+            this.Dt_MoveIn.StateCommon.Border.ImageStyle = ComponentFactory.Krypton.Toolkit.PaletteImageStyle.Inherit;
+            this.Dt_MoveIn.StateCommon.Border.Rounding = 20;
+            this.Dt_MoveIn.StateCommon.Border.Width = 1;
+            this.Dt_MoveIn.TabIndex = 58;
+            // 
+            // label6
+            // 
+            this.label6.AutoSize = true;
+            this.label6.Font = new System.Drawing.Font("Microsoft Sans Serif", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.label6.ForeColor = System.Drawing.Color.Gray;
+            this.label6.Location = new System.Drawing.Point(8, 143);
+            this.label6.Name = "label6";
+            this.label6.Size = new System.Drawing.Size(139, 16);
+            this.label6.TabIndex = 84;
+            this.label6.Text = "Move In: (TimeStamp)";
+            // 
+            // label8
+            // 
+            this.label8.AutoSize = true;
+            this.label8.Font = new System.Drawing.Font("Microsoft Sans Serif", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.label8.ForeColor = System.Drawing.Color.Gray;
+            this.label8.Location = new System.Drawing.Point(190, 143);
+            this.label8.Name = "label8";
+            this.label8.Size = new System.Drawing.Size(149, 16);
+            this.label8.TabIndex = 86;
+            this.label8.Text = "Move Out: (TimeStamp)";
+            // 
+            // Dt_MoveOut
+            // 
+            this.Dt_MoveOut.CalendarTodayDate = new System.DateTime(2021, 12, 29, 0, 0, 0, 0);
+            this.Dt_MoveOut.CustomFormat = "yyyy-MM-dd hh:mm:ss tt";
+            this.Dt_MoveOut.Enabled = false;
+            this.Dt_MoveOut.Format = System.Windows.Forms.DateTimePickerFormat.Custom;
+            this.Dt_MoveOut.Location = new System.Drawing.Point(193, 159);
+            this.Dt_MoveOut.Name = "Dt_MoveOut";
+            this.Dt_MoveOut.PaletteMode = ComponentFactory.Krypton.Toolkit.PaletteMode.ProfessionalSystem;
+            this.Dt_MoveOut.ShowUpDown = true;
+            this.Dt_MoveOut.Size = new System.Drawing.Size(186, 33);
+            this.Dt_MoveOut.StateCommon.Border.Color1 = System.Drawing.Color.FromArgb(((int)(((byte)(224)))), ((int)(((byte)(224)))), ((int)(((byte)(224)))));
+            this.Dt_MoveOut.StateCommon.Border.Color2 = System.Drawing.Color.FromArgb(((int)(((byte)(224)))), ((int)(((byte)(224)))), ((int)(((byte)(224)))));
+            this.Dt_MoveOut.StateCommon.Border.DrawBorders = ((ComponentFactory.Krypton.Toolkit.PaletteDrawBorders)((((ComponentFactory.Krypton.Toolkit.PaletteDrawBorders.Top | ComponentFactory.Krypton.Toolkit.PaletteDrawBorders.Bottom) 
+            | ComponentFactory.Krypton.Toolkit.PaletteDrawBorders.Left) 
+            | ComponentFactory.Krypton.Toolkit.PaletteDrawBorders.Right)));
+            this.Dt_MoveOut.StateCommon.Border.GraphicsHint = ComponentFactory.Krypton.Toolkit.PaletteGraphicsHint.AntiAlias;
+            this.Dt_MoveOut.StateCommon.Border.ImageStyle = ComponentFactory.Krypton.Toolkit.PaletteImageStyle.Inherit;
+            this.Dt_MoveOut.StateCommon.Border.Rounding = 20;
+            this.Dt_MoveOut.StateCommon.Border.Width = 1;
+            this.Dt_MoveOut.TabIndex = 85;
             // 
             // Main
             // 
