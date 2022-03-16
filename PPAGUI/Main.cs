@@ -23,9 +23,9 @@ namespace PPAGUI
         public Main()
         {
             InitializeComponent();
-            Rectangle r = new Rectangle(0, 0, Pb_IndicatorPicture.Width, Pb_IndicatorPicture.Height);
-            System.Drawing.Drawing2D.GraphicsPath gp = new System.Drawing.Drawing2D.GraphicsPath();
-            int d = 28;
+            var r = new Rectangle(0, 0, Pb_IndicatorPicture.Width, Pb_IndicatorPicture.Height);
+            var gp = new System.Drawing.Drawing2D.GraphicsPath();
+            var d = 28;
             gp.AddArc(r.X, r.Y, d, d, 180, 90);
             gp.AddArc(r.X + r.Width - d, r.Y, d, d, 270, 90);
             gp.AddArc(r.X + r.Width - d, r.Y + r.Height - d, d, d, 0, 90);
@@ -43,16 +43,20 @@ namespace PPAGUI
             _mesData = new Mes(name);
 
             WindowState = FormWindowState.Normal;
-            Size = new Size(820, 810);
+            Size = new Size(820, 701);
             MyTitle.Text = $@"PCBA and Pump - {AppSettings.Resource}";
             ResourceGrouping.Values.Heading = $@"Resource Status: {AppSettings.Resource}";
             ResourceDataGroup.Values.Heading = $@"Resource Data Collection: {AppSettings.Resource}";
-            Text = Mes.AddVersionNumber(Text);
-          
+            //Text = Mes.AddVersionNumber(Text);
         }
 
+        public sealed override string Text
+        {
+            get => base.Text;
+            set => base.Text = value;
+        }
 
-#endregion
+        #endregion
 
 #region INSTANCE VARIABLE
       

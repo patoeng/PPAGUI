@@ -118,28 +118,26 @@ namespace PPAGUI
             this.MyTitle.AutoSize = true;
             this.MyTitle.Font = new System.Drawing.Font("Segoe UI Black", 20F, System.Drawing.FontStyle.Bold);
             this.MyTitle.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(46)))), ((int)(((byte)(68)))), ((int)(((byte)(101)))));
-            this.MyTitle.Location = new System.Drawing.Point(20, 38);
-            this.MyTitle.Margin = new System.Windows.Forms.Padding(6, 0, 6, 0);
+            this.MyTitle.Location = new System.Drawing.Point(10, 20);
             this.MyTitle.Name = "MyTitle";
-            this.MyTitle.Size = new System.Drawing.Size(461, 72);
+            this.MyTitle.Size = new System.Drawing.Size(234, 37);
             this.MyTitle.TabIndex = 52;
             this.MyTitle.Text = "PCBA and Pump";
             // 
             // Logo
             // 
             this.Logo.Image = ((System.Drawing.Image)(resources.GetObject("Logo.Image")));
-            this.Logo.Location = new System.Drawing.Point(1340, 27);
-            this.Logo.Margin = new System.Windows.Forms.Padding(8);
+            this.Logo.Location = new System.Drawing.Point(670, 14);
+            this.Logo.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
             this.Logo.Name = "Logo";
-            this.Logo.Size = new System.Drawing.Size(216, 83);
+            this.Logo.Size = new System.Drawing.Size(108, 43);
             this.Logo.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
             this.Logo.TabIndex = 53;
             this.Logo.TabStop = false;
             // 
             // ResourceGrouping
             // 
-            this.ResourceGrouping.Location = new System.Drawing.Point(32, 181);
-            this.ResourceGrouping.Margin = new System.Windows.Forms.Padding(6);
+            this.ResourceGrouping.Location = new System.Drawing.Point(17, 64);
             this.ResourceGrouping.Name = "ResourceGrouping";
             // 
             // ResourceGrouping.Panel
@@ -154,7 +152,7 @@ namespace PPAGUI
             this.ResourceGrouping.Panel.Controls.Add(this.label12);
             this.ResourceGrouping.Panel.Controls.Add(this.label1);
             this.ResourceGrouping.Panel.Controls.Add(this.label5);
-            this.ResourceGrouping.Size = new System.Drawing.Size(1524, 619);
+            this.ResourceGrouping.Size = new System.Drawing.Size(762, 243);
             this.ResourceGrouping.StateCommon.Back.Color1 = System.Drawing.Color.White;
             this.ResourceGrouping.StateCommon.Back.Color2 = System.Drawing.Color.White;
             this.ResourceGrouping.StateCommon.Back.GraphicsHint = ComponentFactory.Krypton.Toolkit.PaletteGraphicsHint.AntiAlias;
@@ -178,11 +176,11 @@ namespace PPAGUI
             // Dg_Maintenance
             // 
             this.Dg_Maintenance.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
-            this.Dg_Maintenance.Location = new System.Drawing.Point(36, 177);
-            this.Dg_Maintenance.Margin = new System.Windows.Forms.Padding(12);
+            this.Dg_Maintenance.Location = new System.Drawing.Point(18, 92);
+            this.Dg_Maintenance.Margin = new System.Windows.Forms.Padding(6, 6, 6, 6);
             this.Dg_Maintenance.Name = "Dg_Maintenance";
             this.Dg_Maintenance.RowHeadersWidth = 51;
-            this.Dg_Maintenance.Size = new System.Drawing.Size(1428, 348);
+            this.Dg_Maintenance.Size = new System.Drawing.Size(714, 110);
             this.Dg_Maintenance.StateCommon.Background.Color1 = System.Drawing.Color.White;
             this.Dg_Maintenance.StateCommon.Background.Color2 = System.Drawing.Color.White;
             this.Dg_Maintenance.StateCommon.Background.GraphicsHint = ComponentFactory.Krypton.Toolkit.PaletteGraphicsHint.AntiAlias;
@@ -218,20 +216,18 @@ namespace PPAGUI
             // 
             // Pb_IndicatorPicture
             // 
-            this.Pb_IndicatorPicture.Location = new System.Drawing.Point(1410, 79);
-            this.Pb_IndicatorPicture.Margin = new System.Windows.Forms.Padding(6);
+            this.Pb_IndicatorPicture.Location = new System.Drawing.Point(705, 41);
             this.Pb_IndicatorPicture.Name = "Pb_IndicatorPicture";
-            this.Pb_IndicatorPicture.Size = new System.Drawing.Size(56, 50);
+            this.Pb_IndicatorPicture.Size = new System.Drawing.Size(28, 26);
             this.Pb_IndicatorPicture.TabIndex = 33;
             this.Pb_IndicatorPicture.TabStop = false;
             // 
             // Tb_Availability
             // 
             this.Tb_Availability.Enabled = false;
-            this.Tb_Availability.Location = new System.Drawing.Point(1106, 75);
-            this.Tb_Availability.Margin = new System.Windows.Forms.Padding(6);
+            this.Tb_Availability.Location = new System.Drawing.Point(553, 39);
             this.Tb_Availability.Name = "Tb_Availability";
-            this.Tb_Availability.Size = new System.Drawing.Size(264, 51);
+            this.Tb_Availability.Size = new System.Drawing.Size(132, 35);
             this.Tb_Availability.StateCommon.Back.Color1 = System.Drawing.Color.White;
             this.Tb_Availability.StateCommon.Border.Color1 = System.Drawing.Color.FromArgb(((int)(((byte)(224)))), ((int)(((byte)(224)))), ((int)(((byte)(224)))));
             this.Tb_Availability.StateCommon.Border.Color2 = System.Drawing.Color.FromArgb(((int)(((byte)(224)))), ((int)(((byte)(224)))), ((int)(((byte)(224)))));
@@ -247,10 +243,9 @@ namespace PPAGUI
             // Tb_TimeAtStatus
             // 
             this.Tb_TimeAtStatus.Enabled = false;
-            this.Tb_TimeAtStatus.Location = new System.Drawing.Point(824, 75);
-            this.Tb_TimeAtStatus.Margin = new System.Windows.Forms.Padding(6);
+            this.Tb_TimeAtStatus.Location = new System.Drawing.Point(412, 39);
             this.Tb_TimeAtStatus.Name = "Tb_TimeAtStatus";
-            this.Tb_TimeAtStatus.Size = new System.Drawing.Size(270, 51);
+            this.Tb_TimeAtStatus.Size = new System.Drawing.Size(135, 35);
             this.Tb_TimeAtStatus.StateCommon.Back.Color1 = System.Drawing.Color.White;
             this.Tb_TimeAtStatus.StateCommon.Border.Color1 = System.Drawing.Color.FromArgb(((int)(((byte)(224)))), ((int)(((byte)(224)))), ((int)(((byte)(224)))));
             this.Tb_TimeAtStatus.StateCommon.Border.Color2 = System.Drawing.Color.FromArgb(((int)(((byte)(224)))), ((int)(((byte)(224)))), ((int)(((byte)(224)))));
@@ -266,10 +261,9 @@ namespace PPAGUI
             // Tb_StatusCode
             // 
             this.Tb_StatusCode.Enabled = false;
-            this.Tb_StatusCode.Location = new System.Drawing.Point(40, 75);
-            this.Tb_StatusCode.Margin = new System.Windows.Forms.Padding(6);
+            this.Tb_StatusCode.Location = new System.Drawing.Point(20, 39);
             this.Tb_StatusCode.Name = "Tb_StatusCode";
-            this.Tb_StatusCode.Size = new System.Drawing.Size(372, 51);
+            this.Tb_StatusCode.Size = new System.Drawing.Size(186, 35);
             this.Tb_StatusCode.StateCommon.Back.Color1 = System.Drawing.Color.White;
             this.Tb_StatusCode.StateCommon.Border.Color1 = System.Drawing.Color.FromArgb(((int)(((byte)(224)))), ((int)(((byte)(224)))), ((int)(((byte)(224)))));
             this.Tb_StatusCode.StateCommon.Border.Color2 = System.Drawing.Color.FromArgb(((int)(((byte)(224)))), ((int)(((byte)(224)))), ((int)(((byte)(224)))));
@@ -285,10 +279,9 @@ namespace PPAGUI
             // Tb_StatusReason
             // 
             this.Tb_StatusReason.Enabled = false;
-            this.Tb_StatusReason.Location = new System.Drawing.Point(424, 75);
-            this.Tb_StatusReason.Margin = new System.Windows.Forms.Padding(6);
+            this.Tb_StatusReason.Location = new System.Drawing.Point(212, 39);
             this.Tb_StatusReason.Name = "Tb_StatusReason";
-            this.Tb_StatusReason.Size = new System.Drawing.Size(388, 51);
+            this.Tb_StatusReason.Size = new System.Drawing.Size(194, 35);
             this.Tb_StatusReason.StateCommon.Back.Color1 = System.Drawing.Color.White;
             this.Tb_StatusReason.StateCommon.Border.Color1 = System.Drawing.Color.FromArgb(((int)(((byte)(224)))), ((int)(((byte)(224)))), ((int)(((byte)(224)))));
             this.Tb_StatusReason.StateCommon.Border.Color2 = System.Drawing.Color.FromArgb(((int)(((byte)(224)))), ((int)(((byte)(224)))), ((int)(((byte)(224)))));
@@ -306,10 +299,9 @@ namespace PPAGUI
             this.label13.AutoSize = true;
             this.label13.Font = new System.Drawing.Font("Microsoft Sans Serif", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.label13.ForeColor = System.Drawing.Color.Gray;
-            this.label13.Location = new System.Drawing.Point(818, 25);
-            this.label13.Margin = new System.Windows.Forms.Padding(6, 0, 6, 0);
+            this.label13.Location = new System.Drawing.Point(409, 13);
             this.label13.Name = "label13";
-            this.label13.Size = new System.Drawing.Size(192, 30);
+            this.label13.Size = new System.Drawing.Size(99, 16);
             this.label13.TabIndex = 29;
             this.label13.Text = "Time at Status :";
             // 
@@ -318,10 +310,9 @@ namespace PPAGUI
             this.label12.AutoSize = true;
             this.label12.Font = new System.Drawing.Font("Microsoft Sans Serif", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.label12.ForeColor = System.Drawing.Color.Gray;
-            this.label12.Location = new System.Drawing.Point(1100, 25);
-            this.label12.Margin = new System.Windows.Forms.Padding(6, 0, 6, 0);
+            this.label12.Location = new System.Drawing.Point(550, 13);
             this.label12.Name = "label12";
-            this.label12.Size = new System.Drawing.Size(149, 30);
+            this.label12.Size = new System.Drawing.Size(79, 16);
             this.label12.TabIndex = 28;
             this.label12.Text = "Availability :";
             // 
@@ -330,10 +321,9 @@ namespace PPAGUI
             this.label1.AutoSize = true;
             this.label1.Font = new System.Drawing.Font("Microsoft Sans Serif", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.label1.ForeColor = System.Drawing.Color.Gray;
-            this.label1.Location = new System.Drawing.Point(34, 25);
-            this.label1.Margin = new System.Windows.Forms.Padding(6, 0, 6, 0);
+            this.label1.Location = new System.Drawing.Point(17, 13);
             this.label1.Name = "label1";
-            this.label1.Size = new System.Drawing.Size(167, 30);
+            this.label1.Size = new System.Drawing.Size(87, 16);
             this.label1.TabIndex = 27;
             this.label1.Text = "Status Code :";
             // 
@@ -342,17 +332,15 @@ namespace PPAGUI
             this.label5.AutoSize = true;
             this.label5.Font = new System.Drawing.Font("Microsoft Sans Serif", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.label5.ForeColor = System.Drawing.Color.Gray;
-            this.label5.Location = new System.Drawing.Point(418, 25);
-            this.label5.Margin = new System.Windows.Forms.Padding(6, 0, 6, 0);
+            this.label5.Location = new System.Drawing.Point(209, 13);
             this.label5.Name = "label5";
-            this.label5.Size = new System.Drawing.Size(194, 30);
+            this.label5.Size = new System.Drawing.Size(102, 16);
             this.label5.TabIndex = 26;
             this.label5.Text = "Status Reason :";
             // 
             // ResourceDataGroup
             // 
-            this.ResourceDataGroup.Location = new System.Drawing.Point(34, 812);
-            this.ResourceDataGroup.Margin = new System.Windows.Forms.Padding(6);
+            this.ResourceDataGroup.Location = new System.Drawing.Point(17, 314);
             this.ResourceDataGroup.Name = "ResourceDataGroup";
             // 
             // ResourceDataGroup.Panel
@@ -370,7 +358,7 @@ namespace PPAGUI
             this.ResourceDataGroup.Panel.Controls.Add(this.Tb_Operation);
             this.ResourceDataGroup.Panel.Controls.Add(this.label11);
             this.ResourceDataGroup.Panel.Controls.Add(this.Tb_PCBASerialNumber);
-            this.ResourceDataGroup.Size = new System.Drawing.Size(1524, 321);
+            this.ResourceDataGroup.Size = new System.Drawing.Size(762, 167);
             this.ResourceDataGroup.StateCommon.Back.Color1 = System.Drawing.Color.White;
             this.ResourceDataGroup.StateCommon.Back.Color2 = System.Drawing.Color.White;
             this.ResourceDataGroup.StateCommon.Back.GraphicsHint = ComponentFactory.Krypton.Toolkit.PaletteGraphicsHint.AntiAlias;
@@ -394,8 +382,8 @@ namespace PPAGUI
             // btnResetState
             // 
             this.btnResetState.Cursor = System.Windows.Forms.Cursors.Hand;
-            this.btnResetState.Location = new System.Drawing.Point(1204, 187);
-            this.btnResetState.Margin = new System.Windows.Forms.Padding(8);
+            this.btnResetState.Location = new System.Drawing.Point(602, 97);
+            this.btnResetState.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
             this.btnResetState.Name = "btnResetState";
             this.btnResetState.OverrideDefault.Back.Color1 = System.Drawing.Color.FromArgb(((int)(((byte)(92)))), ((int)(((byte)(184)))), ((int)(((byte)(116)))));
             this.btnResetState.OverrideDefault.Back.Color2 = System.Drawing.Color.FromArgb(((int)(((byte)(59)))), ((int)(((byte)(143)))), ((int)(((byte)(81)))));
@@ -410,7 +398,7 @@ namespace PPAGUI
             this.btnResetState.OverrideDefault.Border.Rounding = 20;
             this.btnResetState.OverrideDefault.Border.Width = 1;
             this.btnResetState.PaletteMode = ComponentFactory.Krypton.Toolkit.PaletteMode.ProfessionalSystem;
-            this.btnResetState.Size = new System.Drawing.Size(288, 67);
+            this.btnResetState.Size = new System.Drawing.Size(144, 35);
             this.btnResetState.StateCommon.Back.Color1 = System.Drawing.Color.FromArgb(((int)(((byte)(92)))), ((int)(((byte)(184)))), ((int)(((byte)(116)))));
             this.btnResetState.StateCommon.Back.Color2 = System.Drawing.Color.FromArgb(((int)(((byte)(59)))), ((int)(((byte)(143)))), ((int)(((byte)(81)))));
             this.btnResetState.StateCommon.Back.ColorAngle = 45F;
@@ -458,10 +446,9 @@ namespace PPAGUI
             this.label2.AutoSize = true;
             this.label2.Font = new System.Drawing.Font("Microsoft Sans Serif", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.label2.ForeColor = System.Drawing.Color.Gray;
-            this.label2.Location = new System.Drawing.Point(800, 146);
-            this.label2.Margin = new System.Windows.Forms.Padding(6, 0, 6, 0);
+            this.label2.Location = new System.Drawing.Point(400, 76);
             this.label2.Name = "label2";
-            this.label2.Size = new System.Drawing.Size(222, 30);
+            this.label2.Size = new System.Drawing.Size(115, 16);
             this.label2.TabIndex = 81;
             this.label2.Text = "Production Order :";
             // 
@@ -470,20 +457,18 @@ namespace PPAGUI
             this.label30.AutoSize = true;
             this.label30.Font = new System.Drawing.Font("Microsoft Sans Serif", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.label30.ForeColor = System.Drawing.Color.Gray;
-            this.label30.Location = new System.Drawing.Point(800, 35);
-            this.label30.Margin = new System.Windows.Forms.Padding(6, 0, 6, 0);
+            this.label30.Location = new System.Drawing.Point(400, 18);
             this.label30.Name = "label30";
-            this.label30.Size = new System.Drawing.Size(236, 30);
+            this.label30.Size = new System.Drawing.Size(122, 16);
             this.label30.TabIndex = 83;
             this.label30.Text = "Container Position :";
             // 
             // Tb_PO
             // 
             this.Tb_PO.Enabled = false;
-            this.Tb_PO.Location = new System.Drawing.Point(792, 187);
-            this.Tb_PO.Margin = new System.Windows.Forms.Padding(6);
+            this.Tb_PO.Location = new System.Drawing.Point(396, 97);
             this.Tb_PO.Name = "Tb_PO";
-            this.Tb_PO.Size = new System.Drawing.Size(368, 51);
+            this.Tb_PO.Size = new System.Drawing.Size(184, 35);
             this.Tb_PO.StateCommon.Back.Color1 = System.Drawing.Color.White;
             this.Tb_PO.StateCommon.Border.Color1 = System.Drawing.Color.FromArgb(((int)(((byte)(224)))), ((int)(((byte)(224)))), ((int)(((byte)(224)))));
             this.Tb_PO.StateCommon.Border.Color2 = System.Drawing.Color.FromArgb(((int)(((byte)(224)))), ((int)(((byte)(224)))), ((int)(((byte)(224)))));
@@ -499,10 +484,9 @@ namespace PPAGUI
             // Tb_ContainerPosition
             // 
             this.Tb_ContainerPosition.Enabled = false;
-            this.Tb_ContainerPosition.Location = new System.Drawing.Point(805, 71);
-            this.Tb_ContainerPosition.Margin = new System.Windows.Forms.Padding(6);
+            this.Tb_ContainerPosition.Location = new System.Drawing.Point(402, 37);
             this.Tb_ContainerPosition.Name = "Tb_ContainerPosition";
-            this.Tb_ContainerPosition.Size = new System.Drawing.Size(355, 51);
+            this.Tb_ContainerPosition.Size = new System.Drawing.Size(178, 35);
             this.Tb_ContainerPosition.StateCommon.Back.Color1 = System.Drawing.Color.White;
             this.Tb_ContainerPosition.StateCommon.Border.Color1 = System.Drawing.Color.FromArgb(((int)(((byte)(224)))), ((int)(((byte)(224)))), ((int)(((byte)(224)))));
             this.Tb_ContainerPosition.StateCommon.Border.Color2 = System.Drawing.Color.FromArgb(((int)(((byte)(224)))), ((int)(((byte)(224)))), ((int)(((byte)(224)))));
@@ -518,10 +502,9 @@ namespace PPAGUI
             // Tb_PumpSerialNumber
             // 
             this.Tb_PumpSerialNumber.Enabled = false;
-            this.Tb_PumpSerialNumber.Location = new System.Drawing.Point(384, 187);
-            this.Tb_PumpSerialNumber.Margin = new System.Windows.Forms.Padding(6);
+            this.Tb_PumpSerialNumber.Location = new System.Drawing.Point(192, 97);
             this.Tb_PumpSerialNumber.Name = "Tb_PumpSerialNumber";
-            this.Tb_PumpSerialNumber.Size = new System.Drawing.Size(374, 51);
+            this.Tb_PumpSerialNumber.Size = new System.Drawing.Size(187, 35);
             this.Tb_PumpSerialNumber.StateCommon.Back.Color1 = System.Drawing.Color.White;
             this.Tb_PumpSerialNumber.StateCommon.Border.Color1 = System.Drawing.Color.Black;
             this.Tb_PumpSerialNumber.StateCommon.Border.Color2 = System.Drawing.Color.Black;
@@ -539,10 +522,10 @@ namespace PPAGUI
             this.label7.AutoSize = true;
             this.label7.Font = new System.Drawing.Font("Microsoft Sans Serif", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.label7.ForeColor = System.Drawing.Color.Gray;
-            this.label7.Location = new System.Drawing.Point(16, 38);
-            this.label7.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
+            this.label7.Location = new System.Drawing.Point(8, 20);
+            this.label7.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.label7.Name = "label7";
-            this.label7.Size = new System.Drawing.Size(245, 30);
+            this.label7.Size = new System.Drawing.Size(126, 16);
             this.label7.TabIndex = 59;
             this.label7.Text = "Serial Number Unit :";
             // 
@@ -551,10 +534,9 @@ namespace PPAGUI
             this.label3.AutoSize = true;
             this.label3.Font = new System.Drawing.Font("Microsoft Sans Serif", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.label3.ForeColor = System.Drawing.Color.Gray;
-            this.label3.Location = new System.Drawing.Point(378, 146);
-            this.label3.Margin = new System.Windows.Forms.Padding(6, 0, 6, 0);
+            this.label3.Location = new System.Drawing.Point(189, 76);
             this.label3.Name = "label3";
-            this.label3.Size = new System.Drawing.Size(266, 30);
+            this.label3.Size = new System.Drawing.Size(138, 16);
             this.label3.TabIndex = 46;
             this.label3.Text = "Pump Serial Number :";
             // 
@@ -563,20 +545,19 @@ namespace PPAGUI
             this.label4.AutoSize = true;
             this.label4.Font = new System.Drawing.Font("Microsoft Sans Serif", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.label4.ForeColor = System.Drawing.Color.Gray;
-            this.label4.Location = new System.Drawing.Point(378, 35);
-            this.label4.Margin = new System.Windows.Forms.Padding(6, 0, 6, 0);
+            this.label4.Location = new System.Drawing.Point(189, 18);
             this.label4.Name = "label4";
-            this.label4.Size = new System.Drawing.Size(139, 30);
+            this.label4.Size = new System.Drawing.Size(73, 16);
             this.label4.TabIndex = 79;
             this.label4.Text = "Operation :";
             // 
             // Tb_SerialNumber
             // 
             this.Tb_SerialNumber.Enabled = false;
-            this.Tb_SerialNumber.Location = new System.Drawing.Point(21, 76);
-            this.Tb_SerialNumber.Margin = new System.Windows.Forms.Padding(8);
+            this.Tb_SerialNumber.Location = new System.Drawing.Point(10, 40);
+            this.Tb_SerialNumber.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
             this.Tb_SerialNumber.Name = "Tb_SerialNumber";
-            this.Tb_SerialNumber.Size = new System.Drawing.Size(328, 51);
+            this.Tb_SerialNumber.Size = new System.Drawing.Size(164, 35);
             this.Tb_SerialNumber.StateCommon.Back.Color1 = System.Drawing.Color.White;
             this.Tb_SerialNumber.StateCommon.Border.Color1 = System.Drawing.Color.Black;
             this.Tb_SerialNumber.StateCommon.Border.Color2 = System.Drawing.Color.Black;
@@ -592,10 +573,9 @@ namespace PPAGUI
             // Tb_Operation
             // 
             this.Tb_Operation.Enabled = false;
-            this.Tb_Operation.Location = new System.Drawing.Point(384, 71);
-            this.Tb_Operation.Margin = new System.Windows.Forms.Padding(6);
+            this.Tb_Operation.Location = new System.Drawing.Point(192, 37);
             this.Tb_Operation.Name = "Tb_Operation";
-            this.Tb_Operation.Size = new System.Drawing.Size(374, 51);
+            this.Tb_Operation.Size = new System.Drawing.Size(187, 35);
             this.Tb_Operation.StateCommon.Back.Color1 = System.Drawing.Color.White;
             this.Tb_Operation.StateCommon.Border.Color1 = System.Drawing.Color.FromArgb(((int)(((byte)(224)))), ((int)(((byte)(224)))), ((int)(((byte)(224)))));
             this.Tb_Operation.StateCommon.Border.Color2 = System.Drawing.Color.FromArgb(((int)(((byte)(224)))), ((int)(((byte)(224)))), ((int)(((byte)(224)))));
@@ -613,20 +593,18 @@ namespace PPAGUI
             this.label11.AutoSize = true;
             this.label11.Font = new System.Drawing.Font("Microsoft Sans Serif", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.label11.ForeColor = System.Drawing.Color.Gray;
-            this.label11.Location = new System.Drawing.Point(16, 148);
-            this.label11.Margin = new System.Windows.Forms.Padding(6, 0, 6, 0);
+            this.label11.Location = new System.Drawing.Point(8, 77);
             this.label11.Name = "label11";
-            this.label11.Size = new System.Drawing.Size(269, 30);
+            this.label11.Size = new System.Drawing.Size(139, 16);
             this.label11.TabIndex = 42;
             this.label11.Text = "PCBA Serial Number :";
             // 
             // Tb_PCBASerialNumber
             // 
             this.Tb_PCBASerialNumber.Enabled = false;
-            this.Tb_PCBASerialNumber.Location = new System.Drawing.Point(21, 187);
-            this.Tb_PCBASerialNumber.Margin = new System.Windows.Forms.Padding(6);
+            this.Tb_PCBASerialNumber.Location = new System.Drawing.Point(10, 97);
             this.Tb_PCBASerialNumber.Name = "Tb_PCBASerialNumber";
-            this.Tb_PCBASerialNumber.Size = new System.Drawing.Size(317, 51);
+            this.Tb_PCBASerialNumber.Size = new System.Drawing.Size(158, 35);
             this.Tb_PCBASerialNumber.StateCommon.Back.Color1 = System.Drawing.Color.White;
             this.Tb_PCBASerialNumber.StateCommon.Border.Color1 = System.Drawing.Color.Black;
             this.Tb_PCBASerialNumber.StateCommon.Border.Color2 = System.Drawing.Color.Black;
@@ -647,15 +625,14 @@ namespace PPAGUI
             // 
             // kryptonGroupBox1
             // 
-            this.kryptonGroupBox1.Location = new System.Drawing.Point(34, 1144);
-            this.kryptonGroupBox1.Margin = new System.Windows.Forms.Padding(6);
+            this.kryptonGroupBox1.Location = new System.Drawing.Point(16, 486);
             this.kryptonGroupBox1.Name = "kryptonGroupBox1";
             // 
             // kryptonGroupBox1.Panel
             // 
             this.kryptonGroupBox1.Panel.Controls.Add(this.lblCommand);
             this.kryptonGroupBox1.Panel.Controls.Add(this.Tb_Scanner);
-            this.kryptonGroupBox1.Size = new System.Drawing.Size(1524, 321);
+            this.kryptonGroupBox1.Size = new System.Drawing.Size(762, 167);
             this.kryptonGroupBox1.StateCommon.Back.Color1 = System.Drawing.Color.White;
             this.kryptonGroupBox1.StateCommon.Back.Color2 = System.Drawing.Color.White;
             this.kryptonGroupBox1.StateCommon.Back.GraphicsHint = ComponentFactory.Krypton.Toolkit.PaletteGraphicsHint.AntiAlias;
@@ -681,19 +658,17 @@ namespace PPAGUI
             this.lblCommand.AutoSize = true;
             this.lblCommand.Font = new System.Drawing.Font("Segoe UI Black", 14F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(1)), true);
             this.lblCommand.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(192)))), ((int)(((byte)(0)))));
-            this.lblCommand.Location = new System.Drawing.Point(46, 148);
-            this.lblCommand.Margin = new System.Windows.Forms.Padding(6, 0, 6, 0);
+            this.lblCommand.Location = new System.Drawing.Point(23, 77);
             this.lblCommand.Name = "lblCommand";
-            this.lblCommand.Size = new System.Drawing.Size(211, 51);
+            this.lblCommand.Size = new System.Drawing.Size(107, 25);
             this.lblCommand.TabIndex = 53;
             this.lblCommand.Text = "Command";
             // 
             // Tb_Scanner
             // 
-            this.Tb_Scanner.Location = new System.Drawing.Point(38, 54);
-            this.Tb_Scanner.Margin = new System.Windows.Forms.Padding(6);
+            this.Tb_Scanner.Location = new System.Drawing.Point(19, 28);
             this.Tb_Scanner.Name = "Tb_Scanner";
-            this.Tb_Scanner.Size = new System.Drawing.Size(890, 51);
+            this.Tb_Scanner.Size = new System.Drawing.Size(445, 35);
             this.Tb_Scanner.StateCommon.Back.Color1 = System.Drawing.Color.White;
             this.Tb_Scanner.StateCommon.Border.Color1 = System.Drawing.Color.Black;
             this.Tb_Scanner.StateCommon.Border.Color2 = System.Drawing.Color.Black;
@@ -710,8 +685,8 @@ namespace PPAGUI
             // btnResourceSetup
             // 
             this.btnResourceSetup.Cursor = System.Windows.Forms.Cursors.Hand;
-            this.btnResourceSetup.Location = new System.Drawing.Point(1022, 43);
-            this.btnResourceSetup.Margin = new System.Windows.Forms.Padding(8);
+            this.btnResourceSetup.Location = new System.Drawing.Point(511, 22);
+            this.btnResourceSetup.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
             this.btnResourceSetup.Name = "btnResourceSetup";
             this.btnResourceSetup.OverrideDefault.Back.Color1 = System.Drawing.Color.FromArgb(((int)(((byte)(92)))), ((int)(((byte)(184)))), ((int)(((byte)(116)))));
             this.btnResourceSetup.OverrideDefault.Back.Color2 = System.Drawing.Color.FromArgb(((int)(((byte)(59)))), ((int)(((byte)(143)))), ((int)(((byte)(81)))));
@@ -726,7 +701,7 @@ namespace PPAGUI
             this.btnResourceSetup.OverrideDefault.Border.Rounding = 20;
             this.btnResourceSetup.OverrideDefault.Border.Width = 1;
             this.btnResourceSetup.PaletteMode = ComponentFactory.Krypton.Toolkit.PaletteMode.ProfessionalSystem;
-            this.btnResourceSetup.Size = new System.Drawing.Size(178, 67);
+            this.btnResourceSetup.Size = new System.Drawing.Size(89, 35);
             this.btnResourceSetup.StateCommon.Back.Color1 = System.Drawing.Color.FromArgb(((int)(((byte)(92)))), ((int)(((byte)(184)))), ((int)(((byte)(116)))));
             this.btnResourceSetup.StateCommon.Back.Color2 = System.Drawing.Color.FromArgb(((int)(((byte)(59)))), ((int)(((byte)(143)))), ((int)(((byte)(81)))));
             this.btnResourceSetup.StateCommon.Back.ColorAngle = 45F;
@@ -771,17 +746,17 @@ namespace PPAGUI
             // 
             // Main
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(12F, 25F);
+            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(250)))), ((int)(((byte)(252)))), ((int)(((byte)(252)))));
-            this.ClientSize = new System.Drawing.Size(1608, 1494);
+            this.ClientSize = new System.Drawing.Size(804, 662);
             this.Controls.Add(this.btnResourceSetup);
             this.Controls.Add(this.kryptonGroupBox1);
             this.Controls.Add(this.ResourceDataGroup);
             this.Controls.Add(this.ResourceGrouping);
             this.Controls.Add(this.Logo);
             this.Controls.Add(this.MyTitle);
-            this.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);
+            this.Margin = new System.Windows.Forms.Padding(2, 3, 2, 3);
             this.Name = "Main";
             this.Palette = this.PPAPalette;
             this.PaletteMode = ComponentFactory.Krypton.Toolkit.PaletteMode.Custom;
