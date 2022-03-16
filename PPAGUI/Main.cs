@@ -137,7 +137,7 @@ namespace PPAGUI
                     break;
                 case PPAState.UpdateMoveInMove:
                     Tb_Scanner.Enabled = false;
-                    lblCommand.Text = "Container Move In";
+                   
                     /*Move In, Move*/
                     try
                     {
@@ -147,14 +147,40 @@ namespace PPAGUI
                         oContainerStatus = await Mes.GetContainerStatusDetails(_mesData,Tb_SerialNumber.Text);
                         if (oContainerStatus.ContainerName != null)
                         {
-                            var resultMoveIn = await Mes.ExecuteMoveIn(_mesData, oContainerStatus.ContainerName.Value,_dMoveIn);
+                            lblCommand.Text = @"Container Move In Attempt 1";
+                            var transaction = await Mes.ExecuteMoveIn(_mesData, oContainerStatus.ContainerName.Value,_dMoveIn);
+                            var resultMoveIn = transaction.Result || transaction.Message == "Move-in has already been performed for this operation.";
+                            if (!resultMoveIn && transaction.Message.Contains("TimeOut"))
+                            {
+                                lblCommand.Text = @"Container Move In Attempt 2";
+                                transaction = await Mes.ExecuteMoveIn(_mesData, oContainerStatus.ContainerName.Value, _dMoveIn);
+                                resultMoveIn = transaction.Result || transaction.Message == "Move-in has already been performed for this operation.";
+                                if (!resultMoveIn && transaction.Message.Contains("TimeOut"))
+                                {
+                                    lblCommand.Text = @"Container Move In Attempt 3";
+                                    transaction = await Mes.ExecuteMoveIn(_mesData, oContainerStatus.ContainerName.Value, _dMoveIn);
+                                    resultMoveIn = transaction.Result || transaction.Message == "Move-in has already been performed for this operation.";
+                                }
+                            }
                             if (resultMoveIn)
                             {
-                                lblCommand.Text = "Container Move Standard";
+                                lblCommand.Text = @"Container Move Standard Attempt 1";
                                 var resultMoveStd = await Mes.ExecuteMoveStandard(_mesData, oContainerStatus.ContainerName.Value, DateTime.Now, cDataPoint);
-                                await SetPpaState(resultMoveStd
-                                    ? PPAState.ScanUnitSerialNumber
-                                    : PPAState.MoveInOkMoveFail);
+                                if (!resultMoveStd.Result && resultMoveStd.Message.Contains("TimeOut"))
+                                {
+                                    lblCommand.Text = @"Container Move Standard Attempt 2";
+                                    resultMoveStd = await Mes.ExecuteMoveStandard(_mesData, oContainerStatus.ContainerName.Value, DateTime.Now, cDataPoint);
+                                    if (!resultMoveStd.Result && resultMoveStd.Message.Contains("TimeOut"))
+                                    {
+                                        lblCommand.Text = @"Container Move Standard Attempt 3";
+                                        resultMoveStd = await Mes.ExecuteMoveStandard(_mesData, oContainerStatus.ContainerName.Value, DateTime.Now, cDataPoint);
+                                    }
+                                }
+
+                                if (resultMoveStd.Result)
+                                    await SetPpaState(resultMoveStd.Result
+                                        ? PPAState.ScanUnitSerialNumber
+                                        : PPAState.MoveInOkMoveFail);
                             }
                             else await SetPpaState(PPAState.MoveInFail);
                         }
@@ -171,12 +197,12 @@ namespace PPAGUI
                 case PPAState.MoveInOkMoveFail:
                     lblCommand.ForeColor = Color.Red;
                     Tb_Scanner.Enabled = false;
-                    lblCommand.Text = "Container Move Standard Fail";
+                    lblCommand.Text = @"Container Move Standard Fail";
                     break;
                 case PPAState.MoveInFail:
                     lblCommand.ForeColor = Color.Red;
                     Tb_Scanner.Enabled = false;
-                    lblCommand.Text = "Container Move In Fail";
+                    lblCommand.Text = @"Container Move In Fail";
                     break;
                 case PPAState.WrongOperation:
                     lblCommand.ForeColor = Color.Red;
