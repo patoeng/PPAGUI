@@ -13,6 +13,7 @@
         MoveInOkMoveFail,
         MoveInFail,
         WrongOperation,
+        IncorrectDataFormat,
         Done,
     }
 }

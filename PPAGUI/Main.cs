@@ -12,6 +12,7 @@ using System.Windows.Forms;
 using Camstar.WCF.ObjectStack;
 using ComponentFactory.Krypton.Toolkit;
 using MesData;
+using MesData.Ppa;
 using OpcenterWikLibrary;
 using PPAGUI.Enumeration;
 
@@ -43,11 +44,17 @@ namespace PPAGUI
             _mesData = new Mes(name);
 
             WindowState = FormWindowState.Normal;
-            Size = new Size(820, 701);
+            Size = new Size(1134, 701);
             MyTitle.Text = $@"PCBA and Pump - {AppSettings.Resource}";
             ResourceGrouping.Values.Heading = $@"Resource Status: {AppSettings.Resource}";
             ResourceDataGroup.Values.Heading = $@"Resource Data Collection: {AppSettings.Resource}";
             //Text = Mes.AddVersionNumber(Text);
+
+            _pcbaDataConfig = PcbaDataPointConfig.Load(PcbaDataPointConfig.FileName);
+            _pcbaDataConfig?.SaveToFile();
+
+            _pumpDataConfig = PumpDataPointConfig.Load(PumpDataPointConfig.FileName);
+            _pumpDataConfig?.SaveToFile();
         }
 
         public sealed override string Text
@@ -63,8 +70,12 @@ namespace PPAGUI
         private PPAState _ppaState;
         private readonly Mes _mesData;
         private DateTime _dMoveIn;
+        private PcbaData _pcbaData;
+        private PumpData _pumpData;
+        private  PcbaDataPointConfig _pcbaDataConfig;
+        private  PumpDataPointConfig _pumpDataConfig;
 
-#endregion
+        #endregion
 
 #region FUNCTION USEFULL
         
@@ -79,12 +90,29 @@ namespace PPAGUI
                     lblCommand.Text = "Resource is not in \"Up\" condition!";
                     break;
                 case PPAState.ScanUnitSerialNumber:
+                    Tb_Scanner.Clear();
                     Tb_SerialNumber.Clear();
-                    Tb_PCBASerialNumber.Clear();
-                    Tb_PumpSerialNumber.Clear();
+                    Tb_PCBAPartNumber.Clear();
+                    Tb_PCBAVendor.Clear();
+                    Tb_PCBAVoltage.Clear();
+                    Tb_PCBAHardware.Clear();
+                    Tb_PCBASoftware.Clear();
+                    Tb_PCBAMfgDate.Clear();
+                    Tb_PCBAUnique.Clear();
+
+                    Tb_PumpPartNumber.Clear();
+                    Tb_PumpVendor.Clear();
+                    Tb_PumpVoltage.Clear();
+                    Tb_PumpLotNumber.Clear();
+                    Tb_PumpMfgDate.Clear();
+                    Tb_PumpUnique.Clear();
+
                     Tb_Operation.Clear();
                     Tb_ContainerPosition.Clear();
                     Tb_PO.Clear();
+
+                    _pcbaData = new PcbaData();
+                    _pumpData = new PumpData();
 
                     if (_mesData.ResourceStatusDetails == null || _mesData.ResourceStatusDetails?.Availability != "Up")
                     {
@@ -141,9 +169,9 @@ namespace PPAGUI
                     /*Move In, Move*/
                     try
                     {
-                        var cDataPoint = new DataPointDetails[2];
-                        cDataPoint[0] = new DataPointDetails { DataName = "PCBA Serial Number", DataValue = Tb_PCBASerialNumber.Text != "" ? Tb_PCBASerialNumber.Text : "NA", DataType = DataTypeEnum.String };
-                        cDataPoint[1] = new DataPointDetails { DataName = "Pump Serial Number", DataValue = Tb_PumpSerialNumber.Text != "" ? Tb_PumpSerialNumber.Text : "NA", DataType = DataTypeEnum.String };
+                        var cDataPoint = _pumpData.ToDataPointDetailsList();
+                        cDataPoint.AddRange(_pcbaData.ToDataPointDetailsList());
+
                         oContainerStatus = await Mes.GetContainerStatusDetails(_mesData,Tb_SerialNumber.Text);
                         if (oContainerStatus.ContainerName != null)
                         {
@@ -165,20 +193,18 @@ namespace PPAGUI
                             if (resultMoveIn)
                             {
                                 lblCommand.Text = @"Container Move Standard Attempt 1";
-                                var resultMoveStd = await Mes.ExecuteMoveStandard(_mesData, oContainerStatus.ContainerName.Value, DateTime.Now, cDataPoint);
+                                var resultMoveStd = await Mes.ExecuteMoveStandard(_mesData, oContainerStatus.ContainerName.Value, DateTime.Now, cDataPoint.ToArray());
                                 if (!resultMoveStd.Result && resultMoveStd.Message.Contains("TimeOut"))
                                 {
                                     lblCommand.Text = @"Container Move Standard Attempt 2";
-                                    resultMoveStd = await Mes.ExecuteMoveStandard(_mesData, oContainerStatus.ContainerName.Value, DateTime.Now, cDataPoint);
+                                    resultMoveStd = await Mes.ExecuteMoveStandard(_mesData, oContainerStatus.ContainerName.Value, DateTime.Now, cDataPoint.ToArray());
                                     if (!resultMoveStd.Result && resultMoveStd.Message.Contains("TimeOut"))
                                     {
                                         lblCommand.Text = @"Container Move Standard Attempt 3";
-                                        resultMoveStd = await Mes.ExecuteMoveStandard(_mesData, oContainerStatus.ContainerName.Value, DateTime.Now, cDataPoint);
+                                        resultMoveStd = await Mes.ExecuteMoveStandard(_mesData, oContainerStatus.ContainerName.Value, DateTime.Now, cDataPoint.ToArray());
                                     }
                                 }
-
-                                if (resultMoveStd.Result)
-                                    await SetPpaState(resultMoveStd.Result
+                                await SetPpaState(resultMoveStd.Result
                                         ? PPAState.ScanUnitSerialNumber
                                         : PPAState.MoveInOkMoveFail);
                             }
@@ -208,6 +234,11 @@ namespace PPAGUI
                     lblCommand.ForeColor = Color.Red;
                     Tb_Scanner.Enabled = false;
                     lblCommand.Text = @"Incorrect Container Operation";
+                    break;
+                case PPAState.IncorrectDataFormat:
+                    lblCommand.ForeColor = Color.Red;
+                    Tb_Scanner.Enabled = false;
+                    lblCommand.Text = @"Incorrect Data Format";
                     break;
             }
         }
@@ -331,13 +362,45 @@ namespace PPAGUI
                             await SetPpaState(PPAState.CheckUnitStatus);
                             break;
                         case PPAState.ScanPcbaSerialNumber:
-                            Tb_PCBASerialNumber.Text = Tb_Scanner.Text.Trim();
+                            var scannedPcba = Tb_Scanner.Text.Trim();
+                            var transactPcba = PcbaData.ParseData(scannedPcba, _pcbaDataConfig);
+                            if (transactPcba.Result)
+                            {
+                                _pcbaData = (PcbaData) transactPcba.Data;
+                                Tb_PCBAPartNumber.Text = _pcbaData.PartNumber?.Value;
+                                Tb_PCBAVendor.Text = _pcbaData.Vendor?.Value;
+                                Tb_PCBAVoltage.Text = _pcbaData.Voltage?.Value;
+                                Tb_PCBAHardware.Text = _pcbaData.Hardware?.Value;
+                                Tb_PCBASoftware.Text = _pcbaData.Software?.Value;
+                                Tb_PCBAMfgDate.Text = _pcbaData.MfgDate?.Value;
+                                Tb_PCBAUnique.Text = _pcbaData.Unique?.Value;
+                            }
+                            else
+                            {
+                                await SetPpaState(PPAState.IncorrectDataFormat);
+                                break;
+                            }
                             Tb_Scanner.Clear();
                             await SetPpaState(PPAState.ScanPumpSerialNumber);
                             break;
                         case PPAState.ScanPumpSerialNumber:
-                            Tb_PumpSerialNumber.Text = Tb_Scanner.Text.Trim();
-                            Tb_Scanner.Clear();
+                            var scannedPump = Tb_Scanner.Text.Trim();
+                            var transactPump = PumpData.ParseData(scannedPump, _pumpDataConfig);
+                            if (transactPump.Result)
+                            {
+                                _pumpData = (PumpData) transactPump.Data;
+                                Tb_PumpPartNumber.Text = _pumpData.PartNumber?.Value ;
+                                Tb_PumpVendor.Text = _pumpData.Vendor?.Value ;
+                                Tb_PumpVoltage.Text = _pumpData.Voltage?.Value ;
+                                Tb_PumpLotNumber.Text = _pumpData.LotNumber?.Value ;
+                                Tb_PumpMfgDate.Text = _pumpData.MfgDate?.Value ;
+                                Tb_PumpUnique.Text = _pumpData.Unique?.Value ;
+                            }else
+                            {
+                                await SetPpaState(PPAState.IncorrectDataFormat);
+                                break;
+                            }
+                        Tb_Scanner.Clear();
                             await SetPpaState(PPAState.UpdateMoveInMove);
                             break;
                     }
@@ -356,6 +419,22 @@ namespace PPAGUI
         {
             Mes.ResourceSetupForm(this,_mesData, MyTitle.Text);
             await GetStatusOfResource();
+        }
+
+        private void Btn_PcbaSetup_Click(object sender, EventArgs e)
+        {
+            var dialog = _pcbaDataConfig.ShowForm(PcbaDataPointConfig.FileName);
+            if (dialog != DialogResult.Yes) return;
+
+            _pcbaDataConfig = PcbaDataPointConfig.Load(PcbaDataPointConfig.FileName);
+        }
+
+        private void Btn_PumpSetup_Click(object sender, EventArgs e)
+        {
+            var dialog = _pumpDataConfig.ShowForm(PumpDataPointConfig.FileName);
+            if (dialog != DialogResult.Yes) return;
+
+            _pumpDataConfig = PumpDataPointConfig.Load(PumpDataPointConfig.FileName);
         }
     }
 }
