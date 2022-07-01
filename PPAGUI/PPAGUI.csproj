@@ -19,7 +19,7 @@
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
     <OutputPath>bin\Debug\</OutputPath>
-    <DefineConstants>TRACE;DEBUG;MiniMe</DefineConstants>
+    <DefineConstants>TRACE;DEBUG;Ariel</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
@@ -43,7 +43,7 @@
     </Reference>
     <Reference Include="Camstar.WCFClient, Version=8.3.7871.22573, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>lib\Camstar.WCFClient.dll</HintPath>
+      <HintPath>..\..\GitHub\GitHub\Camstar.WCFClient.dll</HintPath>
     </Reference>
     <Reference Include="Camstar.WCFClientBase, Version=8.3.7871.22573, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
@@ -74,8 +74,9 @@
     <Reference Include="Krypton.Toolkit, Version=60.22.2.32, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\Krypton.Toolkit.60.22.2.32\lib\net472\Krypton.Toolkit.dll</HintPath>
     </Reference>
-    <Reference Include="OpcenterWikLibrary">
-      <HintPath>lib\OpcenterWikLibrary.dll</HintPath>
+    <Reference Include="OpcenterWikLibrary, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\GitHub\GitHub\OpcenterWikLibrary.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Configuration" />
@@ -94,6 +95,12 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Enumeration\PPAState.cs" />
+    <Compile Include="Main10.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Main10.Designer.cs">
+      <DependentUpon>Main10.cs</DependentUpon>
+    </Compile>
     <Compile Include="Main.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -102,6 +109,9 @@
     </Compile>
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <EmbeddedResource Include="Main10.resx">
+      <DependentUpon>Main10.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="Main.resx">
       <DependentUpon>Main.cs</DependentUpon>
     </EmbeddedResource>
@@ -120,6 +130,7 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Include="packages.config" />
+    <None Include="Properties\DataSources\MesData.FinishedGood.datasource" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
@@ -138,6 +149,9 @@
       <Project>{47a21ecb-4762-4320-8946-4a7226c0085b}</Project>
       <Name>MesData</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\7070235000.png" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

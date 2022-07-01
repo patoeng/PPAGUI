@@ -6,6 +6,7 @@
         ScanUnitSerialNumber,
         CheckUnitStatus,
         UnitNotFound,
+        ScanPcbaOrPumpSerialNumber,
         ScanPcbaSerialNumber,
         ScanPumpSerialNumber,
         UpdateMoveInMove,
@@ -13,7 +14,11 @@
         MoveInOkMoveFail,
         MoveInFail,
         WrongOperation,
-        IncorrectDataFormat,
+        ComponentNotFound,
         Done,
+        WrongComponent,
+        WrongProductionOrder,
+        WaitPreparation,
+        ComponentIssueFailed
     }
 }
