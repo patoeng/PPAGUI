@@ -175,11 +175,16 @@ namespace PPAGUI
                         _dMoveIn = DateTime.Now;
                         lbMoveIn.Text = _dMoveIn.ToString(Mes.DateTimeStringFormat);
                         lbMoveOut.Text = "";
-                        if (oContainerStatus.MfgOrderName != null && _mesData.ManufacturingOrder == null)
+                        if (oContainerStatus.MfgOrderName != null && _mesData.ManufacturingOrder == null || _mesData.ManufacturingOrder?.Name!= oContainerStatus.MfgOrderName)
                         {
-                            var mfg = await Mes.GetMfgOrder(_mesData, oContainerStatus.MfgOrderName.ToString());
-                            _mesData.SetManufacturingOrder(mfg);
-                            Tb_PO.Text = oContainerStatus.MfgOrderName.ToString();
+                            if (oContainerStatus.MfgOrderName != null)
+                            {
+                                var mfg = await Mes.GetMfgOrder(_mesData, oContainerStatus.MfgOrderName.ToString());
+                                _mesData.SetManufacturingOrder(mfg);
+                            }
+
+                            if (oContainerStatus.MfgOrderName != null)
+                                Tb_PO.Text = oContainerStatus.MfgOrderName.ToString();
                             Tb_Product.Text = oContainerStatus.Product.Name;
                             Tb_ProductDesc.Text = oContainerStatus.ProductDescription.Value;
                             var img = await Mes.GetImage(_mesData, oContainerStatus.Product.Name);
@@ -187,13 +192,6 @@ namespace PPAGUI
 
                             var cnt = await Mes.GetCounterFromMfgOrder(_mesData);
                             Tb_PpaQty.Text = cnt.ToString();
-                        }
-
-                        if (_mesData.ManufacturingOrder != null &&
-                            _mesData.ManufacturingOrder.Name.Value != oContainerStatus.MfgOrderName)
-                        {
-                            await SetPpaState(PPAState.WrongProductionOrder);
-                            break;
                         }
 
                         if (_pcbaDataConfig.Enable == EnableDisable.Enable &&
@@ -403,7 +401,6 @@ namespace PPAGUI
                     break;
                 case PPAState.WaitPreparation:
                     ClearPo();
-                    btnStartPreparation.Enabled = true;
                     lblCommand.ForeColor = Color.Red;
                     _readScanner = false;
                     lblCommand.Text = @"Wait For Preparation";
@@ -780,10 +777,11 @@ namespace PPAGUI
 
         private async void Main_Load(object sender, EventArgs e)
         {
+            ClearPo();
             await GetStatusOfResource();
             await GetStatusMaintenanceDetails();
             await GetResourceStatusCodeList();
-            await SetPpaState(PPAState.WaitPreparation);
+            await SetPpaState(PPAState.ScanUnitSerialNumber);
         }
 
         private void ClearPo()
@@ -955,42 +953,8 @@ namespace PPAGUI
             }
         }
 
-        private async void btnFinishPreparation_Click(object sender, EventArgs e)
-        {
-            if (_mesData.ResourceStatusDetails == null) return;
-            if (_mesData.ResourceStatusDetails?.Reason?.Name == "Maintenance") return;
-            var result = await Mes.SetResourceStatus(_mesData, "PPA - Productive Time", "Pass");
-            await GetStatusOfResource();
-            if (result)
-            {
-                btnFinishPreparation.Enabled = false;
-                btnStartPreparation.Enabled = true;
-                await SetPpaState(PPAState.ScanUnitSerialNumber);
-            }
-        }
-
-        private async void btnStartPreparation_Click(object sender, EventArgs e)
-        {
-            ClearPo();
-            if (_mesData.ResourceStatusDetails == null ||
-                _mesData.ResourceStatusDetails?.Reason?.Name == "Maintenance")
-            {
-                return;
-            }
-            _mesData.SetManufacturingOrder(null);
-            var result = await Mes.SetResourceStatus(_mesData, "PPA - Planned Downtime", "Preparation");
-            await GetStatusOfResource();
-            if (result)
-            {
-                btnFinishPreparation.Enabled = true;
-                btnStartPreparation.Enabled = false;
-            }
-        }
-
-        private void kryptonPanel9_Paint(object sender, PaintEventArgs e)
-        {
-
-        }
+      
+     
 
         private void Tb_Scanner_TextChanged(object sender, EventArgs e)
         {
