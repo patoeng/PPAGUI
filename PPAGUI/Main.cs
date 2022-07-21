@@ -5,7 +5,6 @@ using MesData.Ppa;
 using OpcenterWikLibrary;
 using PPAGUI.Enumeration;
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Drawing;
@@ -31,7 +30,7 @@ namespace PPAGUI
             var name = "PCBA & Pump Assy Ariel";
             Text = Mes.AddVersionNumber(name);
 #endif
-            _mesData = new Mes(null, AppSettings.Resource, name);
+            _mesData = new Mes("", AppSettings.Resource, name);
 
             WindowState = FormWindowState.Normal;
             Size = new Size(1134, 701);
@@ -101,6 +100,7 @@ namespace PPAGUI
         private PumpDataPointConfig _pumpDataConfig;
         private PcbaDataPointConfig _tempPcba;
         private PumpDataPointConfig _tempPump;
+        private string _wrongOperationPosition;
 
         #endregion
 
@@ -114,9 +114,11 @@ namespace PPAGUI
                 case PPAState.PlaceUnit:
                     _readScanner = false;
                     lblCommand.ForeColor = Color.Red;
-                    lblCommand.Text = "Resource is not in \"Up\" condition!";
+                    lblCommand.Text = @"Resource is not in ""Up"" condition!";
                     break;
                 case PPAState.ScanUnitSerialNumber:
+                    lblCommand.ForeColor = Color.LimeGreen;
+                    lblCommand.Text = @"Scan Unit Serial Number!";
                     ClrContainer();
 
                     _pcbaData = new PcbaData();
@@ -127,17 +129,36 @@ namespace PPAGUI
                         await SetPpaState(PPAState.PlaceUnit);
                         break;
                     }
-
+                    // check if fail by maintenance Past Due
+                    var transPastDue = Mes.GetMaintenancePastDue(_mesData.MaintenanceStatusDetails);
+                    if (transPastDue.Result)
+                    {
+                        KryptonMessageBox.Show(this, "This resource under maintenance, need to complete!", "Move In",
+                            MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        break;
+                    }
                     Tb_Scanner.Enabled = true;
                     _readScanner = true;
-                    lblCommand.ForeColor = Color.LimeGreen;
-                    lblCommand.Text = @"Scan Unit Serial Number!";
                     ActiveControl = Tb_Scanner;
                     break;
                 case PPAState.CheckUnitStatus:
+
                     _readScanner = false;
                     lblCommand.Text = @"Checking Unit Status";
-                    var oContainerStatus = await Mes.GetContainerStatusDetails(_mesData, Tb_SerialNumber.Text, "");
+                    if (_mesData.ResourceStatusDetails == null || _mesData.ResourceStatusDetails?.Availability != "Up")
+                    {
+                        await SetPpaState(PPAState.PlaceUnit);
+                        break;
+                    }
+                    // check if fail by maintenance Past Due
+                     transPastDue = Mes.GetMaintenancePastDue(_mesData.MaintenanceStatusDetails);
+                    if (transPastDue.Result)
+                    {
+                        KryptonMessageBox.Show(this, "This resource under maintenance, need to complete!", "Move In",
+                            MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        break;
+                    }
+                    var oContainerStatus = await Mes.GetContainerStatusDetails(_mesData, Tb_SerialNumber.Text, _mesData.DataCollectionName);
                     if (oContainerStatus != null)
                     {
 
@@ -146,7 +167,8 @@ namespace PPAGUI
 
                             if (oContainerStatus.Operation.Name != _mesData.OperationName)
                             {
-                                await SetPpaState(PPAState.WrongOperation);
+                                _wrongOperationPosition = oContainerStatus.Operation.Name;
+                                   await SetPpaState(PPAState.WrongOperation);
                                 break;
                             }
                         }
@@ -199,6 +221,13 @@ namespace PPAGUI
                             break;
                         }
                        
+                    }
+                    var containerStep = await Mes.GetCurrentContainerStep(_mesData, Tb_SerialNumber.Text); // try get operation pos
+                    if (containerStep != null && !_mesData.OperationName.Contains(containerStep))
+                    {
+                        _wrongOperationPosition = containerStep;
+                        await SetPpaState(PPAState.WrongOperation);
+                        break;
                     }
                     await SetPpaState(PPAState.UnitNotFound);
                     break;
@@ -254,7 +283,7 @@ namespace PPAGUI
                                 var listIssue = new List<dynamic>();
                                 if (_pumpDataConfig.Enable == EnableDisable.Enable) listIssue.Add(_pumpData.ToIssueActualDetail());
                                 if (_pcbaDataConfig.Enable == EnableDisable.Enable) listIssue.Add(_pcbaData.ToIssueActualDetail());
-                                var consume = TransactionResult.Create(false);
+                                var consume = TransactionResult.Create(true);
                                 if (listIssue.Count > 0)
                                 {
                                     lblCommand.Text = @"Container Component Issue.";
@@ -296,7 +325,6 @@ namespace PPAGUI
                                                 oContainerStatus, attrs);
                                         }
                                         lbMoveOut.Text = _dbMoveOut.ToString(Mes.DateTimeStringFormat);
-                                        lblCommand.Text = @"Container Component Issue.";
                                         //Update Counter
                                         await Mes.UpdateCounter(_mesData, 1);
                                         var mfg = await Mes.GetMfgOrder(_mesData,
@@ -317,7 +345,7 @@ namespace PPAGUI
                             }
                             else
                             {// check if fail by maintenance Past Due
-                                var transPastDue = Mes.GetMaintenancePastDue(_mesData.MaintenanceStatusDetails);
+                                transPastDue = Mes.GetMaintenancePastDue(_mesData.MaintenanceStatusDetails);
                                 if (transPastDue.Result)
                                 {
                                     KryptonMessageBox.Show(this, "This resource under maintenance, need to complete!", "Move In",
@@ -351,12 +379,12 @@ namespace PPAGUI
                 case PPAState.WrongOperation:
                     lblCommand.ForeColor = Color.Red;
                     _readScanner = false;
-                    lblCommand.Text = @"Incorrect Container Operation";
+                    lblCommand.Text = $@"Completed Scan, Container in {_wrongOperationPosition}";
                     break;
                 case PPAState.ComponentNotFound:
                     lblCommand.ForeColor = Color.Red;
                     _readScanner = false;
-                    lblCommand.Text = @"Component Not Found";
+                    lblCommand.Text = @"Cannot Find Component in Bill of Material";
                     break;
                 case PPAState.WrongComponent:
                     lblCommand.ForeColor = Color.Red;
@@ -860,21 +888,37 @@ namespace PPAGUI
         }
         private void Btn_SetPcba_Click(object sender, EventArgs e)
         {
-            _tempPcba.SaveToFile();
-            _pcbaDataConfig = PcbaDataPointConfig.Load(PcbaDataPointConfig.FileName);
+            try
+            {
+                _tempPcba.SaveToFile();
+                _pcbaDataConfig = PcbaDataPointConfig.Load(PcbaDataPointConfig.FileName);
+                KryptonMessageBox.Show("Pcba Setting Saved!");
+            }
+            catch
+            {
+                KryptonMessageBox.Show("Failed to save Pcba Setting");
+            }
         }
 
         private void Btn_SetPump_Click(object sender, EventArgs e)
         {
-            _tempPump.SaveToFile();
+            try
+            {
+                _tempPump.SaveToFile();
             _pumpDataConfig = PumpDataPointConfig.Load(PumpDataPointConfig.FileName);
+            KryptonMessageBox.Show("Pump Setting Saved!");
+            }
+            catch
+            {
+                KryptonMessageBox.Show("Failed to save Pump Setting");
+            }
 
         }
         private void kryptonNavigator1_Selecting(object sender, ComponentFactory.Krypton.Navigator.KryptonPageCancelEventArgs e)
         {
             if (e.Index != 1 && e.Index != 2) return;
 
-            using (var ss = new LoginForm24())
+            using (var ss = new LoginForm24(e.Index == 1 ? "Maintenance" : "Quality"))
             {
                 var dlg = ss.ShowDialog(this);
                 if (dlg == DialogResult.Abort)
@@ -928,8 +972,11 @@ namespace PPAGUI
         private async void btnStartPreparation_Click(object sender, EventArgs e)
         {
             ClearPo();
-            if (_mesData.ResourceStatusDetails == null) return;
-            if (_mesData.ResourceStatusDetails?.Reason?.Name == "Maintenance") return;
+            if (_mesData.ResourceStatusDetails == null ||
+                _mesData.ResourceStatusDetails?.Reason?.Name == "Maintenance")
+            {
+                return;
+            }
             _mesData.SetManufacturingOrder(null);
             var result = await Mes.SetResourceStatus(_mesData, "PPA - Planned Downtime", "Preparation");
             await GetStatusOfResource();
@@ -977,6 +1024,16 @@ namespace PPAGUI
                 ex.Source = AppSettings.AssemblyName == ex.Source ? MethodBase.GetCurrentMethod()?.Name : MethodBase.GetCurrentMethod()?.Name + "." + ex.Source;
                 EventLogUtil.LogErrorEvent(ex.Source, ex);
             }
+        }
+
+        private void label28_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void Tb_FinishedGoodCounter_TextChanged(object sender, EventArgs e)
+        {
+
         }
     }
 }
