@@ -95,6 +95,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Enumeration\PPAState.cs" />
+    <Compile Include="Hardware\Rs232Scanner.cs" />
     <Compile Include="Main10.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -155,5 +156,6 @@
   <ItemGroup>
     <None Include="Resources\7070235000.png" />
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

@@ -8,12 +8,15 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Drawing;
+using System.IO.Ports;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using Camstar.WCF.ObjectStack;
 using MesData.Repair;
+using PPAGUI.Hardware;
+using PPAGUI.Properties;
 
 namespace PPAGUI
 {
@@ -80,8 +83,37 @@ namespace PPAGUI
 
                 }
             }
-        }
+            //Instantiate Setting
+            var setting = new Settings();
+            //Init Com
+            var serialCom = new SerialPort
+            {
+                PortName = setting.PortName,
+                BaudRate = setting.BaudRate,
+                Parity = setting.Parity,
+                DataBits = setting.DataBits,
+                StopBits = setting.StopBits
+            };
 
+            _keyenceRs232Scanner = new Rs232Scanner(serialCom);
+            _keyenceRs232Scanner.OnDataReadValid += KeyenceDataReadValid;
+        }
+        private async Task KeyenceDataReadValid(object sender)
+        {
+            if (!_readScanner) Tb_Scanner.Clear();
+            _ignoreScanner = true;
+            if (string.IsNullOrEmpty(Tb_Scanner.Text)) return;
+            switch (_ppaState)
+            {
+                case PPAState.ScanUnitSerialNumber:
+                    Tb_SerialNumber.Text = Tb_Scanner.Text.Trim();
+                    Tb_Scanner.Clear();
+                    await SetPpaState(PPAState.CheckUnitStatus);
+                    break;
+            }
+            _ignoreScanner = false;
+            Tb_Scanner.Clear();
+        }
         public sealed override string Text
         {
             get => base.Text;
@@ -121,6 +153,7 @@ namespace PPAGUI
                     lblCommand.ForeColor = Color.LimeGreen;
                     lblCommand.Text = @"Scan Unit Serial Number!";
                     ClrContainer();
+                    _keyenceRs232Scanner.StopRead();
 
                     _pcbaData = new PcbaData();
                     _pumpData = new PumpData();
@@ -141,12 +174,14 @@ namespace PPAGUI
                     Tb_Scanner.Enabled = true;
                     _readScanner = true;
                     ActiveControl = Tb_Scanner;
+                    _keyenceRs232Scanner.StartRead();
                     break;
                 case PPAState.CheckUnitStatus:
                     _afterRepair = false;
                     _readScanner = false;
                     _oldPcba = "";
                     _oldPump = "";
+                    _keyenceRs232Scanner.StopRead();
                     lblCommand.Text = @"Checking Unit Status";
                     if (_mesData.ResourceStatusDetails == null || _mesData.ResourceStatusDetails?.Availability != "Up")
                     {
@@ -699,6 +734,7 @@ namespace PPAGUI
         private bool _pumpEnabled;
         private int _scanlistPcbaIdx;
         private int _scanlistPumpIdx;
+        private readonly Rs232Scanner _keyenceRs232Scanner;
 
         private async void Tb_Scanner_KeyUp(object sender, KeyEventArgs e)
         {
