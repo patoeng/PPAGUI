@@ -13,6 +13,7 @@ using System.Reflection;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using Camstar.WCF.ObjectStack;
+using MesData.Repair;
 
 namespace PPAGUI
 {
@@ -142,8 +143,10 @@ namespace PPAGUI
                     ActiveControl = Tb_Scanner;
                     break;
                 case PPAState.CheckUnitStatus:
-
+                    _afterRepair = false;
                     _readScanner = false;
+                    _oldPcba = "";
+                    _oldPump = "";
                     lblCommand.Text = @"Checking Unit Status";
                     if (_mesData.ResourceStatusDetails == null || _mesData.ResourceStatusDetails?.Availability != "Up")
                     {
@@ -175,6 +178,49 @@ namespace PPAGUI
                         _dMoveIn = DateTime.Now;
                         lbMoveIn.Text = _dMoveIn.ToString(Mes.DateTimeStringFormat);
                         lbMoveOut.Text = "";
+                        //get AfterRepair Atribute
+                        var afterRepair = oContainerStatus.Attributes.Where(x => x.Name == "AfterRepair").ToList();
+                        _afterRepair = afterRepair.Count > 0 && afterRepair[0].AttributeValue == "Yes";
+                        lbAfterRepair.Text = _afterRepair ? "Yes" : "No";
+                        //get Change Component
+                        var changeComponent = oContainerStatus.Attributes.Where(x => x.Name == "ChangeComponent").ToList();
+                        _changeComponent = changeComponent.Count > 0 && changeComponent[0].AttributeValue == "True";
+                        var changePcba = oContainerStatus.Attributes.Where(x => x.Name == "ChangePcba").ToList();
+                        _changePcba = changePcba.Count > 0 && changePcba[0].AttributeValue == "True";
+                        var changePump = oContainerStatus.Attributes.Where(x => x.Name == "ChangePump").ToList();
+                        _changePump = changePump.Count > 0 && changePump[0].AttributeValue == "True";
+
+                       
+                        ppaScanBindingSource.Clear();
+                        if (_changeComponent)
+                        {
+                            _scanlistSn = ppaScanBindingSource.Add(new PpaScan { ScanningList = "Appliacne S/N", Status = "Completed"});
+                        }
+
+                        if (_changePcba)
+                        {
+                            _scanlistPcba = new PpaScan {ScanningList = "PCBA QR Code"};
+                               _scanlistPcbaIdx = ppaScanBindingSource.Add(_scanlistPcba);
+                            var oldPcba = oContainerStatus.Attributes.Where(x => x.Name == "PcbaSn").ToList();
+                            if (oldPcba.Count > 0)
+                            {
+                                _oldPcba = oldPcba[0].AttributeValue.Value;
+                            }
+                        }
+
+                        if (_changePump)
+                        {
+                            _scanlistPump = new PpaScan {ScanningList = "Pump QR Code"};
+                               _scanlistPumpIdx = ppaScanBindingSource.Add(_scanlistPump);
+                            var oldPump = oContainerStatus.Attributes.Where(x => x.Name == "PumpSn").ToList();
+                            if (oldPump.Count > 0)
+                            {
+                                _oldPump = oldPump[0].AttributeValue.Value;
+                            }
+                        }
+
+                        kryptonDataGridView2.Visible = _changeComponent || _changePcba || _changePump;
+
                         if (oContainerStatus.MfgOrderName != null && _mesData.ManufacturingOrder == null || _mesData.ManufacturingOrder?.Name!= oContainerStatus.MfgOrderName)
                         {
                             if (oContainerStatus.MfgOrderName != null)
@@ -194,31 +240,43 @@ namespace PPAGUI
                             Tb_PpaQty.Text = cnt.ToString();
                         }
 
-                        if (_pcbaDataConfig.Enable == EnableDisable.Enable &&
-                            _pumpDataConfig.Enable == EnableDisable.Enable)
+                        if (!_afterRepair)
+                        {
+                            _pcbaEnabled = _pcbaDataConfig.Enable == EnableDisable.Enable;
+                            _pumpEnabled = _pumpDataConfig.Enable == EnableDisable.Enable;
+                        }
+                        else
+                        {
+                            _pcbaEnabled = _pcbaDataConfig.Enable == EnableDisable.Enable && _changePcba;
+                            _pumpEnabled = _pumpDataConfig.Enable == EnableDisable.Enable && _changePump;
+                        }
+
+
+                        if (_pcbaEnabled && _pumpEnabled)
                         {
                             await SetPpaState(PPAState.ScanPcbaOrPumpSerialNumber);
                             break;
                         }
 
-                        if (_pcbaDataConfig.Enable == EnableDisable.Disable &&
-                            _pumpDataConfig.Enable == EnableDisable.Disable)
+                        if (!_pcbaEnabled && !_pumpEnabled)
                         {
                             await SetPpaState(PPAState.UpdateMoveInMove);
                             break;
                         }
-                        if (_pcbaDataConfig.Enable == EnableDisable.Disable)
+
+                        if (!_pcbaEnabled)
                         {
                             await SetPpaState(PPAState.ScanPumpSerialNumber);
                             break;
                         }
 
-                        if (_pumpDataConfig.Enable == EnableDisable.Disable)
+                        if (!_pumpEnabled)
                         {
                             await SetPpaState(PPAState.ScanPcbaSerialNumber);
                             break;
                         }
-                       
+                        
+
                     }
                     var containerStep = await Mes.GetCurrentContainerStep(_mesData, Tb_SerialNumber.Text); // try get operation pos
                     if (containerStep != null && !_mesData.OperationName.Contains(containerStep))
@@ -279,8 +337,8 @@ namespace PPAGUI
                             {
                                 //Component Consume
                                 var listIssue = new List<dynamic>();
-                                if (_pumpDataConfig.Enable == EnableDisable.Enable) listIssue.Add(_pumpData.ToIssueActualDetail());
-                                if (_pcbaDataConfig.Enable == EnableDisable.Enable) listIssue.Add(_pcbaData.ToIssueActualDetail());
+                                if (_pumpEnabled) listIssue.Add(_pumpData.ToIssueActualDetail());
+                                if (_pcbaEnabled) listIssue.Add(_pcbaData.ToIssueActualDetail());
                                 var consume = TransactionResult.Create(true);
                                 if (listIssue.Count > 0)
                                 {
@@ -313,15 +371,40 @@ namespace PPAGUI
                                    
                                     if (resultMoveStd.Result)
                                     {
-                                        if (_pumpDataConfig.Enable == EnableDisable.Enable)
+                                        if (_pumpEnabled ||_pcbaEnabled)
                                         {
-                                            var attrs = new[]
+                                            var attrs = new List<ContainerAttrDetail>();
+                                            if (_pumpEnabled)
                                             {
-                                                new ContainerAttrDetail{Name = "PumpModel" ,AttributeValue = _pumpData.PartNumber.Value,DataType = TrivialTypeEnum.String,IsExpression = false}
-                                            };
+                                                attrs.AddRange(new[]
+                                                {
+                                                    new ContainerAttrDetail
+                                                    {
+                                                        Name = "PumpModel", AttributeValue = _pumpData.PartNumber.Value,
+                                                        DataType = TrivialTypeEnum.String, IsExpression = false
+                                                    },
+                                                    new ContainerAttrDetail
+                                                    {
+                                                        Name = "PumpSn", AttributeValue = _pumpData.RawData,
+                                                        DataType = TrivialTypeEnum.String, IsExpression = false
+                                                    },
+                                                });
+                                            }
+                                            if (_pcbaEnabled)
+                                            {
+                                                attrs.AddRange(new[]
+                                                {
+                                                    new ContainerAttrDetail
+                                                    {
+                                                        Name = Name = "PcbaSn" ,AttributeValue = _pcbaData.RawData,
+                                                        DataType = TrivialTypeEnum.String, IsExpression = false
+                                                    }
+                                                });
+                                            }
                                             await Mes.ExecuteContainerAttrMaint(_mesData,
-                                                oContainerStatus, attrs);
+                                                oContainerStatus, attrs.ToArray());
                                         }
+                                        
                                         lbMoveOut.Text = _dbMoveOut.ToString(Mes.DateTimeStringFormat);
                                         //Update Counter
                                         await Mes.UpdateCounter(_mesData, 1);
@@ -404,6 +487,21 @@ namespace PPAGUI
                     lblCommand.ForeColor = Color.Red;
                     _readScanner = false;
                     lblCommand.Text = @"Wait For Preparation";
+                    btnStartPreparation.Enabled = true;
+                    break;
+                case PPAState.SamePcba:
+                    lblCommand.ForeColor = Color.Red;
+                    _readScanner = false;
+                    lblCommand.Text = @"Same PCBA, Please Replace with the New PCBA";
+                    KryptonMessageBox.Show(this, "Same PCBA, Please Replace with the New PCBA", "Scan Pcba",
+                        MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    break;
+                case PPAState.SamePump:
+                    lblCommand.ForeColor = Color.Red;
+                    _readScanner = false;
+                    lblCommand.Text = @"Same Pump, Please Replace with the New Pump";
+                    KryptonMessageBox.Show(this, "Same Pump, Please Replace with the New Pump", "Scan Pump",
+                        MessageBoxButtons.OK, MessageBoxIcon.Error);
                     break;
             }
         }
@@ -416,6 +514,8 @@ namespace PPAGUI
             Tb_PCBASerialNumber.Clear();
             Tb_PCBAPartNumber.Clear();
             Tb_PumpPartNumber.Clear();
+            ppaScanBindingSource.Clear();
+            kryptonDataGridView2.Visible = false;
         }
 
         #endregion
@@ -433,8 +533,36 @@ namespace PPAGUI
                     getMaintenanceStatusDetailsBindingSource.DataSource =
                         new BindingList<GetMaintenanceStatusDetails>(maintenanceStatusDetails);
                     Dg_Maintenance.DataSource = getMaintenanceStatusDetailsBindingSource;
-                    return;
+
+                    //get past due, warning, and tolerance
+                    var pastDue = maintenanceStatusDetails.Where(x => x.MaintenanceState=="Past Due").ToList();
+                    var due = maintenanceStatusDetails.Where(x => x.MaintenanceState == "Due").ToList();
+                    var pending = maintenanceStatusDetails.Where(x => x.MaintenanceState == "Pending").ToList();
+
+                    if (pastDue.Count > 0)
+                    {
+                        lblResMaintMesg.Text = @"Resource Maintenance Past Due";
+                        lblResMaintMesg.BackColor = Color.Red;
+                        lblResMaintMesg.Visible = true;
+                        return;
+                    }
+                    if (due.Count > 0)
+                    {
+                        lblResMaintMesg.Text = @"Resource Maintenance Due";
+                        lblResMaintMesg.BackColor = Color.Orange;
+                        lblResMaintMesg.Visible = true;
+                        return;
+                    }
+                    if (pending.Count > 0)
+                    {
+                        lblResMaintMesg.Text = @"Resource Maintenance Pending";
+                        lblResMaintMesg.BackColor = Color.Yellow;
+                        lblResMaintMesg.Visible = true;
+                        return;
+                    }
                 }
+                lblResMaintMesg.Visible = false;
+                lblResMaintMesg.Text = "";
                 getMaintenanceStatusDetailsBindingSource.Clear();
             }
             catch (Exception ex)
@@ -558,6 +686,19 @@ namespace PPAGUI
         private bool _ignoreScanner;
         private DateTime _dbMoveOut;
         private readonly int _indexMaintenanceState=0;
+        private bool _afterRepair = false;
+        private bool _changeComponent;
+        private bool _changePcba;
+        private bool _changePump;
+        private int _scanlistSn;
+        private PpaScan _scanlistPcba;
+        private PpaScan _scanlistPump;
+        private string _oldPcba;
+        private string _oldPump;
+        private bool _pcbaEnabled;
+        private bool _pumpEnabled;
+        private int _scanlistPcbaIdx;
+        private int _scanlistPumpIdx;
 
         private async void Tb_Scanner_KeyUp(object sender, KeyEventArgs e)
         {
@@ -572,132 +713,60 @@ namespace PPAGUI
                     case PPAState.ScanUnitSerialNumber:
                         Tb_SerialNumber.Text = Tb_Scanner.Text.Trim();
                         Tb_Scanner.Clear();
-
                         await SetPpaState(PPAState.CheckUnitStatus);
                         break;
                     case PPAState.ScanPcbaSerialNumber:
-                        if (_pcbaDataConfig.Enable == EnableDisable.Disable)
-                        {
-                            await SetPpaState(PPAState.ScanPumpSerialNumber);
-                            break;
-                        }
-                        var scannedPcba = Tb_Scanner.Text.Trim();
-                        var transactPcba = PcbaData.ParseData(scannedPcba, _pcbaDataConfig);
-                        if (transactPcba.Result)
-                        {
-                            _pcbaData = (PcbaData)transactPcba.Data;
-                            Tb_PCBAPartNumber.Text = _pcbaData.PartNumber?.Value;
-                            Tb_PCBASerialNumber.Text = scannedPcba;
-                            var s = _mesData.ManufacturingOrder.MaterialList.Where(x => x.Product.Name == _pcbaData.PartNumber.Value).ToList();
-                            if (s.Count == 0)
-                            {
-                                await SetPpaState(PPAState.ComponentNotFound);
-                                break;
-                            }
-
-                            if (s[0].wikScanning.Value != "X")
-                            {
-                                await SetPpaState(PPAState.WrongComponent);
-                                break;
-                            }
-                            _pcbaData.SetQtyRequired(s[0].QtyRequired.Value);
-                        }
-                        else
-                        {
-                            var l = scannedPcba.Length>10?10:scannedPcba.Length;
-                            var str = scannedPcba.Substring(0, l);
-                            var vPcba = _mesData.ManufacturingOrder.MaterialList.Where(x => x.Product.Name.Contains(str)).ToList();
-                            if (vPcba.Count == 0)
-                            {
-                                await SetPpaState(PPAState.WrongComponent);
-                                break;
-                            }
-                            await SetPpaState(PPAState.ComponentNotFound);
-                            break;
-                        }
-                        Tb_Scanner.Clear();
-                        await SetPpaState(PPAState.UpdateMoveInMove);
-                        break;
-                       
                     case PPAState.ScanPumpSerialNumber:
-                        if (_pumpDataConfig.Enable == EnableDisable.Disable)
-                        {
-                            await SetPpaState(PPAState.UpdateMoveInMove);
-                            break;
-                        }
-
-                        var scannedPump = Tb_Scanner.Text.Trim();
-                        var transactPump = PumpData.ParseData(scannedPump, _pumpDataConfig);
-                        if (transactPump.Result)
-                        {
-                            _pumpData = (PumpData)transactPump.Data;
-                            Tb_PumpPartNumber.Text = _pumpData.PartNumber?.Value;
-                            Tb_PumpSerialNumber.Text = scannedPump;
-                            var s = _mesData.ManufacturingOrder.MaterialList.Where(x => x.Product.Name == _pumpData.PartNumber.Value).ToList();
-                            if (s.Count == 0)
-                            {
-                                await SetPpaState(PPAState.ComponentNotFound);
-                                break;
-                            }
-                            if (s[0].wikScanning.Value != "X")
-                            {
-                                await SetPpaState(PPAState.WrongComponent);
-                                break;
-                            }
-                            _pumpData.SetQtyRequired(s[0].QtyRequired.Value);
-                        }
-                        else
-                        {
-                            var l = scannedPump.Length > 10 ? 10 : scannedPump.Length;
-                            var str = scannedPump.Substring(0, l);
-                            var vPump = _mesData.ManufacturingOrder.MaterialList.Where(x => x.Product.Name.Contains(str)).ToList();
-                            if (vPump.Count == 0)
-                            {
-                                await SetPpaState(PPAState.ComponentNotFound);
-                                break;
-                            }
-                            await SetPpaState(PPAState.WrongComponent);
-                            break;
-                        }
-                        Tb_Scanner.Clear();
-                        await SetPpaState(PPAState.UpdateMoveInMove);
-                        break;
                     case PPAState.ScanPcbaOrPumpSerialNumber:
-                        scannedPcba = Tb_Scanner.Text.Trim();
-                        if (scannedPcba.IndexOf("135", StringComparison.Ordinal) == 0)
+                        var scannedPcba = Tb_Scanner.Text.Trim();
+                        Tb_Scanner.Clear();
+                        if (scannedPcba.IndexOf("135", StringComparison.Ordinal) == 0 && _pcbaEnabled)
                         {
-                            if (_pcbaDataConfig.Enable == EnableDisable.Disable)
-                            {
-                                await SetPpaState(PPAState.ScanPumpSerialNumber);
-                                break;
-                            }
-
-                            transactPcba = PcbaData.ParseData(scannedPcba, _pcbaDataConfig);
+                            var transactPcba = PcbaData.ParseData(scannedPcba, _pcbaDataConfig);
                             if (transactPcba.Result)
                             {
                                 _pcbaData = (PcbaData)transactPcba.Data;
-                                Tb_PCBAPartNumber.Text = _pcbaData.PartNumber?.Value;
-                                Tb_PCBASerialNumber.Text = scannedPcba;
-                                var s = _mesData.ManufacturingOrder.MaterialList.Where(x => x.Product.Name == _pcbaData.PartNumber.Value).ToList();
-                                if (s.Count == 0)
+                                var s = _mesData.ManufacturingOrder.MaterialList?.Where(x => x.Product?.Name == _pcbaData.PartNumber.Value).ToList();
+                                if (s == null || s.Count == 0)
                                 {
                                     await SetPpaState(PPAState.ComponentNotFound);
                                     break;
                                 }
 
-                                if (s[0].wikScanning.Value != "X")
+                                if (s[0].wikScanning!= "X")
                                 {
                                     await SetPpaState(PPAState.WrongComponent);
                                     break;
                                 }
+
+                                if (_afterRepair)
+                                {
+                                    if (_oldPcba == scannedPcba)
+                                    {
+                                        await SetPpaState(PPAState.SamePcba);
+                                        break;
+                                    }
+                                }
+                                Tb_PCBAPartNumber.Text = _pcbaData.PartNumber?.Value;
+                                Tb_PCBASerialNumber.Text = scannedPcba;
                                 _pcbaData.SetQtyRequired(s[0].QtyRequired.Value);
+                                if (_afterRepair && _scanlistPcba!=null)
+                                {
+                                    _scanlistPcba.Status = "Completed";
+                                    ppaScanBindingSource[_scanlistPcbaIdx] = _scanlistPcba;
+                                }
+                                if (!_pumpEnabled || !string.IsNullOrEmpty(_pumpData.RawData))
+                                {
+                                    await SetPpaState(PPAState.UpdateMoveInMove);
+                                    break;
+                                }
                             }
                             else
                             {
                                 var l = scannedPcba.Length > 10 ? 10 : scannedPcba.Length;
                                 var str = scannedPcba.Substring(0, l);
-                                var vPcba = _mesData.ManufacturingOrder.MaterialList.Where(x => x.Product.Name.Contains(str)).ToList();
-                                if (vPcba.Count == 0)
+                                var vPcba = _mesData.ManufacturingOrder.MaterialList?.Where(x => x.Product.Name.Contains(str)).ToList();
+                                if (vPcba == null || vPcba.Count == 0)
                                 {
                                     await SetPpaState(PPAState.ComponentNotFound);
                                     break;
@@ -705,43 +774,56 @@ namespace PPAGUI
                                 await SetPpaState(PPAState.WrongComponent);
                                 break;
                             }
-                            Tb_Scanner.Clear();
                             await SetPpaState(PPAState.ScanPumpSerialNumber);
                             break;
                         }
-                        if (scannedPcba.IndexOf("103", StringComparison.Ordinal) == 0)
+                        if (scannedPcba.IndexOf("103", StringComparison.Ordinal) == 0 &&_pumpEnabled)
                         {
-                            if (_pumpDataConfig.Enable == EnableDisable.Disable)
-                            {
-                                await SetPpaState(PPAState.UpdateMoveInMove);
-                                break;
-                            }
-                            scannedPump = scannedPcba;
-                            transactPump = PumpData.ParseData(scannedPump, _pumpDataConfig);
+                            var scannedPump = scannedPcba;
+                            var transactPump = PumpData.ParseData(scannedPump, _pumpDataConfig);
                             if (transactPump.Result)
                             {
                                 _pumpData = (PumpData)transactPump.Data;
-                                Tb_PumpPartNumber.Text = _pumpData.PartNumber?.Value;
-                                Tb_PumpSerialNumber.Text = scannedPump;
-                                var s = _mesData.ManufacturingOrder.MaterialList.Where(x => x.Product.Name == _pumpData.PartNumber.Value && x.wikScanning.Value == "X").ToList();
+                                var s = _mesData.ManufacturingOrder.MaterialList?.Where(x => x.Product?.Name == _pumpData.PartNumber.Value).ToList();
                                 if (s.Count == 0)
                                 {
                                     await SetPpaState(PPAState.ComponentNotFound);
                                     break;
                                 }
-                                if (s[0].wikScanning.Value != "X")
+                                if (s[0].wikScanning != "X")
                                 {
                                     await SetPpaState(PPAState.WrongComponent);
                                     break;
                                 }
+                                if (_afterRepair)
+                                {
+                                    if (_oldPump == scannedPump)
+                                    {
+                                        await SetPpaState(PPAState.SamePump);
+                                        break;
+                                    }
+                                }
+                                Tb_PumpPartNumber.Text = _pumpData.PartNumber?.Value;
+                                Tb_PumpSerialNumber.Text = scannedPump;
                                 _pumpData.SetQtyRequired(s[0].QtyRequired.Value);
+                                if (_afterRepair && _scanlistPump != null)
+                                {
+                                    _scanlistPump.Status = "Completed";
+                                    ppaScanBindingSource[_scanlistPumpIdx] = _scanlistPump;
+                                }
+
+                                if (!_pcbaEnabled || !string.IsNullOrEmpty(_pcbaData.RawData))
+                                {
+                                    await SetPpaState(PPAState.UpdateMoveInMove);
+                                    break;
+                                }
                             }
                             else
                             {
                                 var l = scannedPump.Length > 10 ? 10 : scannedPump.Length;
                                 var str = scannedPump.Substring(0, l);
-                                var vPump = _mesData.ManufacturingOrder.MaterialList.Where(x => x.Product.Name.Contains(str)).ToList();
-                                if (vPump.Count == 0)
+                                var vPump = _mesData.ManufacturingOrder.MaterialList?.Where(x => x.Product.Name.Contains(str)).ToList();
+                                if (vPump == null || vPump.Count == 0)
                                 {
                                     await SetPpaState(PPAState.ComponentNotFound);
                                     break;
@@ -749,7 +831,6 @@ namespace PPAGUI
                                 await SetPpaState(PPAState.WrongComponent);
                                 break;
                             }
-                            Tb_Scanner.Clear();
                             await SetPpaState(PPAState.ScanPcbaSerialNumber);
                             break;
                         }
@@ -758,8 +839,8 @@ namespace PPAGUI
                             Tb_Scanner.Clear();
                             var l = scannedPcba.Length > 10 ? 10 : scannedPcba.Length;
                             var str = scannedPcba.Substring(0, l);
-                            var vPcba = _mesData.ManufacturingOrder.MaterialList.Where(x => x.Product.Name.Contains(str)).ToList();
-                            if (vPcba.Count == 0)
+                            var vPcba = _mesData.ManufacturingOrder.MaterialList?.Where(x => x.Product.Name.Contains(str)).ToList();
+                            if (vPcba == null || vPcba.Count == 0)
                             {
                                 await SetPpaState(PPAState.ComponentNotFound);
                                 break;
@@ -781,7 +862,7 @@ namespace PPAGUI
             await GetStatusOfResource();
             await GetStatusMaintenanceDetails();
             await GetResourceStatusCodeList();
-            await SetPpaState(PPAState.ScanUnitSerialNumber);
+            await SetPpaState(PPAState.WaitPreparation);
         }
 
         private void ClearPo()
@@ -998,6 +1079,35 @@ namespace PPAGUI
         private void Tb_FinishedGoodCounter_TextChanged(object sender, EventArgs e)
         {
 
+        }
+
+        private async void btnFinishPreparation_Click(object sender, EventArgs e)
+        {
+            if (_mesData.ResourceStatusDetails == null) return;
+            if (_mesData.ResourceStatusDetails.Reason.Name == "Maintenance") return;
+            var result = await Mes.SetResourceStatus(_mesData, "PPA - Productive Time", "Pass");
+            await GetStatusOfResource();
+            if (result)
+            {
+                btnFinishPreparation.Enabled = false;
+                btnStartPreparation.Enabled = true;
+                await SetPpaState(PPAState.ScanUnitSerialNumber);
+            }
+        }
+
+        private async void btnStartPreparation_Click(object sender, EventArgs e)
+        {
+            ClearPo();
+            if (_mesData.ResourceStatusDetails == null) return;
+            if (_mesData.ResourceStatusDetails?.Reason?.Name == "Maintenance") return;
+            _mesData.SetManufacturingOrder(null);
+            var result = await Mes.SetResourceStatus(_mesData, "PPA - Planned Downtime", "Preparation");
+            await GetStatusOfResource();
+            if (result)
+            {
+                btnFinishPreparation.Enabled = true;
+                btnStartPreparation.Enabled = false;
+            }
         }
     }
 }

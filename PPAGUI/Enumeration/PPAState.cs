@@ -19,6 +19,8 @@
         WrongComponent,
         WrongProductionOrder,
         WaitPreparation,
-        ComponentIssueFailed
+        ComponentIssueFailed,
+        SamePcba,
+        SamePump
     }
 }

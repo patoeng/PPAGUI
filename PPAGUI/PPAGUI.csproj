@@ -132,6 +132,7 @@
     <None Include="packages.config" />
     <None Include="Properties\DataSources\Camstar.WCF.ObjectStack.GetMaintenanceStatusDetails.datasource" />
     <None Include="Properties\DataSources\MesData.FinishedGood.datasource" />
+    <None Include="Properties\DataSources\MesData.Repair.PpaScan.datasource" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
