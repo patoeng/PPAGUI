@@ -102,11 +102,11 @@ namespace PPAGUI
         {
             if (!_readScanner) Tb_Scanner.Clear();
             _ignoreScanner = true;
-            if (string.IsNullOrEmpty(Tb_Scanner.Text)) return;
+            if (string.IsNullOrEmpty(_keyenceRs232Scanner.DataValue) ) return;
             switch (_ppaState)
             {
                 case PPAState.ScanUnitSerialNumber:
-                    Tb_SerialNumber.Text = Tb_Scanner.Text.Trim();
+                    Tb_SerialNumber.Text = _keyenceRs232Scanner.DataValue.Trim('\r','\n');
                     Tb_Scanner.Clear();
                     await SetPpaState(PPAState.CheckUnitStatus);
                     break;
@@ -579,6 +579,10 @@ namespace PPAGUI
                         lblResMaintMesg.Text = @"Resource Maintenance Past Due";
                         lblResMaintMesg.BackColor = Color.Red;
                         lblResMaintMesg.Visible = true;
+                        if (_mesData?.ResourceStatusDetails?.Reason?.Name != "Planned Maintenance")
+                        {
+                            await Mes.SetResourceStatus(_mesData, "PPA - Planned Downtime", "Planned Maintenance");
+                        }
                         return;
                     }
                     if (due.Count > 0)
@@ -598,7 +602,7 @@ namespace PPAGUI
                 }
                 lblResMaintMesg.Visible = false;
                 lblResMaintMesg.Text = "";
-                getMaintenanceStatusDetailsBindingSource.Clear();
+                getMaintenanceStatusDetailsBindingSource.DataSource = null;
             }
             catch (Exception ex)
             {
@@ -1121,6 +1125,7 @@ namespace PPAGUI
         {
             if (_mesData.ResourceStatusDetails == null) return;
             if (_mesData.ResourceStatusDetails.Reason.Name == "Maintenance") return;
+            if (_mesData.ResourceStatusDetails?.Reason?.Name == "Planned Maintenance") return;
             var result = await Mes.SetResourceStatus(_mesData, "PPA - Productive Time", "Pass");
             await GetStatusOfResource();
             if (result)
@@ -1136,11 +1141,13 @@ namespace PPAGUI
             ClearPo();
             if (_mesData.ResourceStatusDetails == null) return;
             if (_mesData.ResourceStatusDetails?.Reason?.Name == "Maintenance") return;
+            if (_mesData.ResourceStatusDetails?.Reason?.Name == "Planned Maintenance") return;
             _mesData.SetManufacturingOrder(null);
             var result = await Mes.SetResourceStatus(_mesData, "PPA - Planned Downtime", "Preparation");
             await GetStatusOfResource();
             if (result)
             {
+                await SetPpaState(PPAState.WaitPreparation);
                 btnFinishPreparation.Enabled = true;
                 btnStartPreparation.Enabled = false;
             }
