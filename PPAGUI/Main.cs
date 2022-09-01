@@ -15,8 +15,10 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using Camstar.WCF.ObjectStack;
 using MesData.Repair;
+using MesData.UnitCounter;
 using PPAGUI.Hardware;
 using PPAGUI.Properties;
+using Environment = System.Environment;
 
 namespace PPAGUI
 {
@@ -36,8 +38,6 @@ namespace PPAGUI
 #endif
             _mesData = new Mes("", AppSettings.Resource, name);
 
-            WindowState = FormWindowState.Normal;
-            Size = new Size(1134, 701);
             lbTitle.Text = AppSettings.Resource;
 
             _pcbaDataConfig = PcbaDataPointConfig.Load(PcbaDataPointConfig.FileName);
@@ -102,11 +102,14 @@ namespace PPAGUI
         {
             if (!_readScanner) Tb_Scanner.Clear();
             _ignoreScanner = true;
+          
             if (string.IsNullOrEmpty(_keyenceRs232Scanner.DataValue) ) return;
+            var temp = _keyenceRs232Scanner.DataValue.Trim('\r', '\n');
+            if (_keyenceRs232Scanner.DataValue.Length!=19) return;
             switch (_ppaState)
             {
                 case PPAState.ScanUnitSerialNumber:
-                    Tb_SerialNumber.Text = _keyenceRs232Scanner.DataValue.Trim('\r','\n');
+                    Tb_SerialNumber.Text = temp;
                     Tb_Scanner.Clear();
                     await SetPpaState(PPAState.CheckUnitStatus);
                     break;
@@ -134,7 +137,7 @@ namespace PPAGUI
         private PcbaDataPointConfig _tempPcba;
         private PumpDataPointConfig _tempPump;
         private string _wrongOperationPosition;
-
+        private MesUnitCounter _mesUnitCounter;
         #endregion
 
         #region FUNCTION USEFULL
@@ -206,7 +209,7 @@ namespace PPAGUI
                             if (oContainerStatus.Operation.Name != _mesData.OperationName)
                             {
                                 _wrongOperationPosition = oContainerStatus.Operation.Name;
-                                   await SetPpaState(PPAState.WrongOperation);
+                                await SetPpaState(PPAState.WrongOperation);
                                 break;
                             }
                         }
@@ -260,19 +263,43 @@ namespace PPAGUI
                         {
                             if (oContainerStatus.MfgOrderName != null)
                             {
+                                lblLoadingPo.Visible = true;
                                 var mfg = await Mes.GetMfgOrder(_mesData, oContainerStatus.MfgOrderName.ToString());
+                                
+                                if (mfg == null)
+                                {
+                                    lblLoadingPo.Visible = false;
+                                    KryptonMessageBox.Show(this, "Failed To Get Manufacturing Order Information", "Check Unit",
+                                        MessageBoxButtons.OK, MessageBoxIcon.Error);
+                                    
+                                    await SetPpaState(PPAState.ScanUnitSerialNumber);
+                                    break;
+                                }
                                 _mesData.SetManufacturingOrder(mfg);
-                            }
-
-                            if (oContainerStatus.MfgOrderName != null)
                                 Tb_PO.Text = oContainerStatus.MfgOrderName.ToString();
-                            Tb_Product.Text = oContainerStatus.Product.Name;
-                            Tb_ProductDesc.Text = oContainerStatus.ProductDescription.Value;
-                            var img = await Mes.GetImage(_mesData, oContainerStatus.Product.Name);
-                            pictureBox1.ImageLocation = img.Identifier.Value;
+                                Tb_Product.Text = oContainerStatus.Product.Name;
+                                Tb_ProductDesc.Text = oContainerStatus.ProductDescription.Value;
+                                var img = await Mes.GetImage(_mesData, oContainerStatus.Product.Name);
+                                pictureBox1.ImageLocation = img.Identifier.Value;
 
-                            var cnt = await Mes.GetCounterFromMfgOrder(_mesData);
-                            Tb_PpaQty.Text = cnt.ToString();
+                                if (_mesUnitCounter != null)
+                                {
+                                    await _mesUnitCounter.StopPoll();
+                                }
+                                _mesUnitCounter = MesUnitCounter.Load(MesUnitCounter.GetFileName(mfg.Name.Value));
+
+                                if (!MesUnitCounter.FileExist(mfg.Name.ToString()))
+                                {
+                                    var cnt = await Mes.GetCounterFromMfgOrder(_mesData, 120000);
+                                    _mesUnitCounter.SetActiveMfgOrder(mfg.Name.Value, cnt);
+                                }
+                                _mesUnitCounter.InitPoll(_mesData);
+                                _mesUnitCounter.StartPoll();
+                                MesUnitCounter.Save(_mesUnitCounter);
+
+                                Tb_PpaQty.Text = _mesUnitCounter.Counter.ToString();
+                                lblLoadingPo.Visible = false;
+                            }
                         }
 
                         if (!_afterRepair)
@@ -372,8 +399,8 @@ namespace PPAGUI
                             {
                                 //Component Consume
                                 var listIssue = new List<dynamic>();
-                                if (_pumpEnabled) listIssue.Add(_pumpData.ToIssueActualDetail());
-                                if (_pcbaEnabled) listIssue.Add(_pcbaData.ToIssueActualDetail());
+                                if (_pumpEnabled) listIssue.Add(_pumpData.ToIssueActualDetail(_afterRepair? "Repair" : null));
+                                if (_pcbaEnabled) listIssue.Add(_pcbaData.ToIssueActualDetail(_afterRepair ? "Repair" : null));
                                 var consume = TransactionResult.Create(true);
                                 if (listIssue.Count > 0)
                                 {
@@ -442,12 +469,13 @@ namespace PPAGUI
                                         
                                         lbMoveOut.Text = _dbMoveOut.ToString(Mes.DateTimeStringFormat);
                                         //Update Counter
-                                        await Mes.UpdateCounter(_mesData, 1);
-                                        var mfg = await Mes.GetMfgOrder(_mesData,
-                                            _mesData.ManufacturingOrder.Name.Value);
-                                        _mesData.SetManufacturingOrder(mfg);
-                                        var count = await Mes.GetCounterFromMfgOrder(_mesData);
-                                        Tb_PpaQty.Text = count.ToString();
+                                        var currentPos = await Mes.GetCurrentContainerStep(_mesData, oContainerStatus.ContainerName.Value) ;
+                                        await Mes.UpdateOrCreateFinishGoodRecordToCached(_mesData, oContainerStatus.MfgOrderName?.Value, oContainerStatus.ContainerName.Value, currentPos);
+                                      
+                                        _mesUnitCounter.UpdateCounter(1);
+                                        MesUnitCounter.Save(_mesUnitCounter);
+
+                                        Tb_PpaQty.Text = _mesUnitCounter.Counter.ToString();
                                     }
                                     await SetPpaState(resultMoveStd.Result
                                         ? PPAState.ScanUnitSerialNumber
@@ -615,10 +643,9 @@ namespace PPAGUI
             try
             {
                 var resourceStatus = await Mes.GetResourceStatusDetails(_mesData);
-                _mesData.SetResourceStatusDetails(resourceStatus);
-
                 if (resourceStatus != null)
                 {
+                    _mesData.SetResourceStatusDetails(resourceStatus);
                     if (resourceStatus.Status != null) Tb_StatusCode.Text = resourceStatus.Reason?.Name;
                     if (resourceStatus.Availability != null)
                     {
@@ -652,10 +679,9 @@ namespace PPAGUI
             try
             {
                 var resourceStatus = await Mes.GetResourceStatusDetails(_mesData);
-                _mesData.SetResourceStatusDetails(resourceStatus);
-
                 if (resourceStatus != null)
                 {
+                    _mesData.SetResourceStatusDetails(resourceStatus);
                     if (resourceStatus.Status != null) Cb_StatusCode.Text = resourceStatus.Status.Name;
                     await Task.Delay(1000);
                     if (resourceStatus.Reason != null) Cb_StatusReason.Text = resourceStatus.Reason.Name;
@@ -729,7 +755,6 @@ namespace PPAGUI
         private bool _changeComponent;
         private bool _changePcba;
         private bool _changePump;
-        private int _scanlistSn;
         private PpaScan _scanlistPcba;
         private PpaScan _scanlistPump;
         private string _oldPcba;
@@ -739,6 +764,8 @@ namespace PPAGUI
         private int _scanlistPcbaIdx;
         private int _scanlistPumpIdx;
         private readonly Rs232Scanner _keyenceRs232Scanner;
+        private bool _allowClose;
+        private int _scanlistSn;
 
         private async void Tb_Scanner_KeyUp(object sender, KeyEventArgs e)
         {
@@ -974,6 +1001,10 @@ namespace PPAGUI
 
         private async void kryptonNavigator1_SelectedPageChanged(object sender, EventArgs e)
         {
+            if (kryptonNavigator1.SelectedIndex == 0)
+            {
+                ActiveControl = Tb_Scanner;
+            }
             if (kryptonNavigator1.SelectedIndex == 1)
             {
                 await GetStatusOfResourceDetail();
@@ -996,10 +1027,13 @@ namespace PPAGUI
         }
         private async Task GetFinishedGoodRecord()
         {
-            var data = await Mes.GetFinishGoodRecord(_mesData, _mesData.ManufacturingOrder?.Name.ToString());
+            if (_mesData == null) return;
+
+            var data = await Mes.GetFinishGoodRecordFromCached(_mesData, _mesData.ManufacturingOrder?.Name.ToString());
+           
             if (data != null)
             {
-                var list = await Mes.ContainerStatusesToFinishedGood(data);
+                var list = await Mes.FinishGoodToFinishedGood(data);
                 finishedGoodBindingSource.DataSource = new BindingList<FinishedGood>(list);
                 kryptonDataGridView1.DataSource = finishedGoodBindingSource;
                 Tb_FinishedGoodCounter.Text = list.Length.ToString();
@@ -1151,6 +1185,32 @@ namespace PPAGUI
                 btnFinishPreparation.Enabled = true;
                 btnStartPreparation.Enabled = false;
             }
+        }
+
+        private async void button1_Click(object sender, EventArgs e)
+        {
+            Tb_SerialNumber.Text = "22811B50N00882520AV";
+           var s = await Mes.GetCurrentContainerStep(_mesData, Tb_SerialNumber.Text);
+        }
+        private async Task AsyncClosing()
+        {
+            if (_mesUnitCounter != null)
+            {
+                await _mesUnitCounter.StopPoll();
+            }
+            _allowClose = true;
+            Close();
+        }
+        private async void Main_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            if (_allowClose)
+            {
+                e.Cancel = true;
+                Environment.Exit(Environment.ExitCode);
+            }
+
+            e.Cancel = true;
+            await AsyncClosing();
         }
     }
 }

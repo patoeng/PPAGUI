@@ -53,6 +53,7 @@ namespace PPAGUI
             this.lblCommand = new System.Windows.Forms.Label();
             this.Tb_Scanner = new ComponentFactory.Krypton.Toolkit.KryptonTextBox();
             this.kryptonPanel8 = new ComponentFactory.Krypton.Toolkit.KryptonPanel();
+            this.lblLoadingPo = new System.Windows.Forms.Label();
             this.btnFinishPreparation = new ComponentFactory.Krypton.Toolkit.KryptonButton();
             this.btnStartPreparation = new ComponentFactory.Krypton.Toolkit.KryptonButton();
             this.btnCallMaintenance = new ComponentFactory.Krypton.Toolkit.KryptonButton();
@@ -173,6 +174,7 @@ namespace PPAGUI
             this.panel4 = new System.Windows.Forms.Panel();
             this.tableLayoutPanel9 = new System.Windows.Forms.TableLayoutPanel();
             this.kryptonPanel1 = new ComponentFactory.Krypton.Toolkit.KryptonPanel();
+            this.button1 = new System.Windows.Forms.Button();
             this.lblResMaintMesg = new System.Windows.Forms.Label();
             this.lbTitle = new System.Windows.Forms.Label();
             this.MyTitle = new System.Windows.Forms.Label();
@@ -416,6 +418,13 @@ namespace PPAGUI
             this.kryptonNavigator1.StateNormal.HeaderGroup.HeaderBar.Back.Color2 = System.Drawing.Color.FromArgb(((int)(((byte)(250)))), ((int)(((byte)(252)))), ((int)(((byte)(252)))));
             this.kryptonNavigator1.StateNormal.Page.Color1 = System.Drawing.Color.FromArgb(((int)(((byte)(250)))), ((int)(((byte)(252)))), ((int)(((byte)(252)))));
             this.kryptonNavigator1.StateNormal.Page.Color2 = System.Drawing.Color.FromArgb(((int)(((byte)(250)))), ((int)(((byte)(252)))), ((int)(((byte)(252)))));
+            this.kryptonNavigator1.StateSelected.Tab.Back.Color1 = System.Drawing.Color.Blue;
+            this.kryptonNavigator1.StateSelected.Tab.Back.Color2 = System.Drawing.Color.Blue;
+            this.kryptonNavigator1.StateSelected.Tab.Border.Color1 = System.Drawing.Color.Blue;
+            this.kryptonNavigator1.StateSelected.Tab.Border.Color2 = System.Drawing.Color.Blue;
+            this.kryptonNavigator1.StateSelected.Tab.Border.DrawBorders = ((ComponentFactory.Krypton.Toolkit.PaletteDrawBorders)((((ComponentFactory.Krypton.Toolkit.PaletteDrawBorders.Top | ComponentFactory.Krypton.Toolkit.PaletteDrawBorders.Bottom) 
+            | ComponentFactory.Krypton.Toolkit.PaletteDrawBorders.Left) 
+            | ComponentFactory.Krypton.Toolkit.PaletteDrawBorders.Right)));
             this.kryptonNavigator1.TabIndex = 59;
             this.kryptonNavigator1.Text = "kryptonNavigator1";
             this.kryptonNavigator1.SelectedPageChanged += new System.EventHandler(this.kryptonNavigator1_SelectedPageChanged);
@@ -721,6 +730,7 @@ namespace PPAGUI
             // 
             // kryptonPanel8
             // 
+            this.kryptonPanel8.Controls.Add(this.lblLoadingPo);
             this.kryptonPanel8.Controls.Add(this.btnFinishPreparation);
             this.kryptonPanel8.Controls.Add(this.btnStartPreparation);
             this.kryptonPanel8.Controls.Add(this.btnCallMaintenance);
@@ -733,6 +743,18 @@ namespace PPAGUI
             this.kryptonPanel8.StateCommon.Color1 = System.Drawing.Color.FromArgb(((int)(((byte)(250)))), ((int)(((byte)(252)))), ((int)(((byte)(252)))));
             this.kryptonPanel8.StateCommon.Color2 = System.Drawing.Color.FromArgb(((int)(((byte)(250)))), ((int)(((byte)(252)))), ((int)(((byte)(252)))));
             this.kryptonPanel8.TabIndex = 0;
+            // 
+            // lblLoadingPo
+            // 
+            this.lblLoadingPo.AutoSize = true;
+            this.lblLoadingPo.BackColor = System.Drawing.Color.Yellow;
+            this.lblLoadingPo.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.lblLoadingPo.Location = new System.Drawing.Point(386, 18);
+            this.lblLoadingPo.Name = "lblLoadingPo";
+            this.lblLoadingPo.Size = new System.Drawing.Size(206, 20);
+            this.lblLoadingPo.TabIndex = 113;
+            this.lblLoadingPo.Text = "Loading Production Order ...";
+            this.lblLoadingPo.Visible = false;
             // 
             // btnFinishPreparation
             // 
@@ -2084,7 +2106,7 @@ namespace PPAGUI
             this.kryptonPage4.LastVisibleSet = true;
             this.kryptonPage4.MinimumSize = new System.Drawing.Size(50, 50);
             this.kryptonPage4.Name = "kryptonPage4";
-            this.kryptonPage4.Size = new System.Drawing.Size(840, 556);
+            this.kryptonPage4.Size = new System.Drawing.Size(1213, 556);
             this.kryptonPage4.Text = "Finish Good Record";
             this.kryptonPage4.ToolTipTitle = "Page ToolTip";
             this.kryptonPage4.UniqueName = "CAEAF24E4B7B4E1F58A60A81E6387A42";
@@ -2103,7 +2125,7 @@ namespace PPAGUI
             this.tableLayoutPanel8.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 62F));
             this.tableLayoutPanel8.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
             this.tableLayoutPanel8.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 50F));
-            this.tableLayoutPanel8.Size = new System.Drawing.Size(840, 556);
+            this.tableLayoutPanel8.Size = new System.Drawing.Size(1213, 556);
             this.tableLayoutPanel8.TabIndex = 114;
             // 
             // panel2
@@ -2113,7 +2135,7 @@ namespace PPAGUI
             this.panel2.Dock = System.Windows.Forms.DockStyle.Fill;
             this.panel2.Location = new System.Drawing.Point(3, 3);
             this.panel2.Name = "panel2";
-            this.panel2.Size = new System.Drawing.Size(834, 56);
+            this.panel2.Size = new System.Drawing.Size(1207, 56);
             this.panel2.TabIndex = 0;
             // 
             // lblLoading
@@ -2156,7 +2178,7 @@ namespace PPAGUI
             this.kryptonDataGridView1.Location = new System.Drawing.Point(3, 65);
             this.kryptonDataGridView1.Name = "kryptonDataGridView1";
             this.kryptonDataGridView1.ReadOnly = true;
-            this.kryptonDataGridView1.Size = new System.Drawing.Size(834, 438);
+            this.kryptonDataGridView1.Size = new System.Drawing.Size(1207, 438);
             this.kryptonDataGridView1.TabIndex = 0;
             // 
             // idDataGridViewTextBoxColumn
@@ -2195,7 +2217,7 @@ namespace PPAGUI
             this.panel3.Dock = System.Windows.Forms.DockStyle.Fill;
             this.panel3.Location = new System.Drawing.Point(3, 509);
             this.panel3.Name = "panel3";
-            this.panel3.Size = new System.Drawing.Size(834, 44);
+            this.panel3.Size = new System.Drawing.Size(1207, 44);
             this.panel3.TabIndex = 1;
             // 
             // label28
@@ -2510,6 +2532,7 @@ namespace PPAGUI
             // 
             // kryptonPanel1
             // 
+            this.kryptonPanel1.Controls.Add(this.button1);
             this.kryptonPanel1.Controls.Add(this.lblResMaintMesg);
             this.kryptonPanel1.Controls.Add(this.lbTitle);
             this.kryptonPanel1.Controls.Add(this.MyTitle);
@@ -2522,6 +2545,17 @@ namespace PPAGUI
             this.kryptonPanel1.StateCommon.Color1 = System.Drawing.Color.FromArgb(((int)(((byte)(250)))), ((int)(((byte)(252)))), ((int)(((byte)(252)))));
             this.kryptonPanel1.StateCommon.Color2 = System.Drawing.Color.FromArgb(((int)(((byte)(250)))), ((int)(((byte)(252)))), ((int)(((byte)(252)))));
             this.kryptonPanel1.TabIndex = 1;
+            // 
+            // button1
+            // 
+            this.button1.Location = new System.Drawing.Point(547, 14);
+            this.button1.Name = "button1";
+            this.button1.Size = new System.Drawing.Size(75, 23);
+            this.button1.TabIndex = 59;
+            this.button1.Text = "button1";
+            this.button1.UseVisualStyleBackColor = true;
+            this.button1.Visible = false;
+            this.button1.Click += new System.EventHandler(this.button1_Click);
             // 
             // lblResMaintMesg
             // 
@@ -2590,6 +2624,8 @@ namespace PPAGUI
             this.ShowIcon = false;
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.Text = "PPAGUI";
+            this.WindowState = System.Windows.Forms.FormWindowState.Maximized;
+            this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.Main_FormClosing);
             this.Load += new System.EventHandler(this.Main_Load);
             this.tableLayoutPanel1.ResumeLayout(false);
             this.tableLayoutPanel2.ResumeLayout(false);
@@ -2610,6 +2646,7 @@ namespace PPAGUI
             this.kryptonGroupBox1.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.kryptonPanel8)).EndInit();
             this.kryptonPanel8.ResumeLayout(false);
+            this.kryptonPanel8.PerformLayout();
             this.tableLayoutPanel5.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.kryptonPanel9)).EndInit();
             this.kryptonPanel9.ResumeLayout(false);
@@ -2823,6 +2860,8 @@ namespace PPAGUI
         private System.Windows.Forms.BindingSource ppaScanBindingSource;
         private System.Windows.Forms.DataGridViewTextBoxColumn scanningListDataGridViewTextBoxColumn;
         private System.Windows.Forms.DataGridViewTextBoxColumn statusDataGridViewTextBoxColumn;
+        private System.Windows.Forms.Button button1;
+        private System.Windows.Forms.Label lblLoadingPo;
     }
 }
 
