@@ -8,6 +8,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Drawing;
+using System.IO;
 using System.IO.Ports;
 using System.Linq;
 using System.Reflection;
@@ -19,6 +20,7 @@ using MesData.UnitCounter;
 using PPAGUI.Hardware;
 using PPAGUI.Properties;
 using Environment = System.Environment;
+using System.Linq.Dynamic;
 
 namespace PPAGUI
 {
@@ -36,7 +38,7 @@ namespace PPAGUI
             var name = "PCBA & Pump Assy Ariel";
             Text = Mes.AddVersionNumber(name);
 #endif
-            _mesData = new Mes("", AppSettings.Resource, name);
+            _mesData = new Mes("Repair", AppSettings.Resource, name);
 
             lbTitle.Text = AppSettings.Resource;
 
@@ -149,10 +151,12 @@ namespace PPAGUI
             {
                 case PPAState.PlaceUnit:
                     _readScanner = false;
+                    btnResetState.Enabled = true;
                     lblCommand.ForeColor = Color.Red;
                     lblCommand.Text = @"Resource is not in ""Up"" condition!";
                     break;
                 case PPAState.ScanUnitSerialNumber:
+                    btnResetState.Enabled = true;
                     lblCommand.ForeColor = Color.LimeGreen;
                     lblCommand.Text = @"Scan Unit Serial Number!";
                     ClrContainer();
@@ -180,6 +184,7 @@ namespace PPAGUI
                     _keyenceRs232Scanner.StartRead();
                     break;
                 case PPAState.CheckUnitStatus:
+                    btnResetState.Enabled = false;
                     _afterRepair = false;
                     _readScanner = false;
                     _oldPcba = "";
@@ -205,13 +210,20 @@ namespace PPAGUI
 
                         if (oContainerStatus.Operation != null)
                         {
-
+                            if (oContainerStatus.Qty == 0)
+                            {
+                                _wrongOperationPosition = "Scrap";
+                                await SetPpaState(PPAState.WrongOperation);
+                                break;
+                            }
                             if (oContainerStatus.Operation.Name != _mesData.OperationName)
                             {
                                 _wrongOperationPosition = oContainerStatus.Operation.Name;
                                 await SetPpaState(PPAState.WrongOperation);
                                 break;
                             }
+
+                         
                         }
                         _dMoveIn = DateTime.Now;
                         lbMoveIn.Text = _dMoveIn.ToString(Mes.DateTimeStringFormat);
@@ -288,11 +300,8 @@ namespace PPAGUI
                                 }
                                 _mesUnitCounter = MesUnitCounter.Load(MesUnitCounter.GetFileName(mfg.Name.Value));
 
-                                if (!MesUnitCounter.FileExist(mfg.Name.ToString()))
-                                {
-                                    var cnt = await Mes.GetCounterFromMfgOrder(_mesData, 120000);
-                                    _mesUnitCounter.SetActiveMfgOrder(mfg.Name.Value, cnt);
-                                }
+                                _mesUnitCounter.SetActiveMfgOrder(mfg.Name.Value);
+                               
                                 _mesUnitCounter.InitPoll(_mesData);
                                 _mesUnitCounter.StartPoll();
                                 MesUnitCounter.Save(_mesUnitCounter);
@@ -350,21 +359,25 @@ namespace PPAGUI
                     await SetPpaState(PPAState.UnitNotFound);
                     break;
                 case PPAState.UnitNotFound:
+                    btnResetState.Enabled = true;
                     _readScanner = false;
                     lblCommand.ForeColor = Color.Red;
                     lblCommand.Text = "Unit Not Found";
                     break;
                 case PPAState.ScanPcbaSerialNumber:
+                    btnResetState.Enabled = true;
                     Tb_Scanner.Enabled = true;
                     _readScanner = true;
                     lblCommand.Text = "Scan PCBA Serial Number!";
                     break;
                 case PPAState.ScanPumpSerialNumber:
+                    btnResetState.Enabled = true;
                     Tb_Scanner.Enabled = true;
                     _readScanner = true;
                     lblCommand.Text = "Scan Pump Serial Number!";
                     break;
                 case PPAState.ScanPcbaOrPumpSerialNumber:
+                    btnResetState.Enabled = true;
                     Tb_Scanner.Enabled = true;
                     _readScanner = true;
                     lblCommand.Text = @"Scan Pump Or PCBA Serial Number!";
@@ -373,7 +386,7 @@ namespace PPAGUI
                     break;
                 case PPAState.UpdateMoveInMove:
                     _readScanner = false;
-
+                    btnResetState.Enabled = false;
                     /*Move In, Move*/
                     try
                     {
@@ -406,7 +419,7 @@ namespace PPAGUI
                                 {
                                     lblCommand.Text = @"Container Component Issue.";
                                     consume = await Mes.ExecuteComponentIssue(_mesData, oContainerStatus.ContainerName.Value,
-                                        listIssue);
+                                        listIssue,60000);
                                 }
 
                                 if (consume.Result  || listIssue.Count <=0)
@@ -415,13 +428,13 @@ namespace PPAGUI
                                     lblCommand.Text = @"Container Move Standard Attempt 1";
                                     var resultMoveStd = await Mes.ExecuteMoveStandard(_mesData,
                                         oContainerStatus.ContainerName.Value, _dbMoveOut);
-                                    if (!resultMoveStd.Result && resultMoveStd.Message.Contains("TimeOut"))
+                                    if (!resultMoveStd.Result)
                                     {
                                         _dbMoveOut = DateTime.Now;
                                         lblCommand.Text = @"Container Move Standard Attempt 2";
                                         resultMoveStd = await Mes.ExecuteMoveStandard(_mesData,
                                             oContainerStatus.ContainerName.Value, _dbMoveOut);
-                                        if (!resultMoveStd.Result && resultMoveStd.Message.Contains("TimeOut"))
+                                        if (!resultMoveStd.Result )
                                         {
                                             _dbMoveOut = DateTime.Now;
                                             lblCommand.Text = @"Container Move Standard Attempt 3";
@@ -472,7 +485,7 @@ namespace PPAGUI
                                         var currentPos = await Mes.GetCurrentContainerStep(_mesData, oContainerStatus.ContainerName.Value) ;
                                         await Mes.UpdateOrCreateFinishGoodRecordToCached(_mesData, oContainerStatus.MfgOrderName?.Value, oContainerStatus.ContainerName.Value, currentPos);
                                       
-                                        _mesUnitCounter.UpdateCounter(1);
+                                        _mesUnitCounter.UpdateCounter(oContainerStatus.ContainerName.Value);
                                         MesUnitCounter.Save(_mesUnitCounter);
 
                                         Tb_PpaQty.Text = _mesUnitCounter.Counter.ToString();
@@ -509,43 +522,52 @@ namespace PPAGUI
                     }
                     break;
                 case PPAState.MoveSuccess:
+                    btnResetState.Enabled = true;
                     break;
                 case PPAState.MoveInOkMoveFail:
+                    btnResetState.Enabled = true;
                     lblCommand.ForeColor = Color.Red;
                     _readScanner = false;
                     lblCommand.Text = @"Container Move Standard Fail";
                     break;
                 case PPAState.MoveInFail:
+                    btnResetState.Enabled = true;
                     lblCommand.ForeColor = Color.Red;
                     _readScanner = false;
                     lblCommand.Text = @"Container Move In Fail";
                     break;
                 case PPAState.WrongOperation:
+                    btnResetState.Enabled = true;
                     lblCommand.ForeColor = Color.Red;
                     _readScanner = false;
                     lblCommand.Text = $@"Completed Scan, Container in {_wrongOperationPosition}";
                     break;
                 case PPAState.ComponentNotFound:
+                    btnResetState.Enabled = true;
                     lblCommand.ForeColor = Color.Red;
                     _readScanner = false;
                     lblCommand.Text = @"Cannot Find Component in Bill of Material";
                     break;
                 case PPAState.WrongComponent:
+                    btnResetState.Enabled = true;
                     lblCommand.ForeColor = Color.Red;
                     _readScanner = false;
                     lblCommand.Text = @"Wrong Component";
                     break;
                 case PPAState.WrongProductionOrder:
+                    btnResetState.Enabled = true;
                     lblCommand.ForeColor = Color.Red;
                     _readScanner = false;
                     lblCommand.Text = @"Mismatch Production Order";
                     break;
                 case PPAState.ComponentIssueFailed:
+                    btnResetState.Enabled = true;
                     lblCommand.ForeColor = Color.Red;
                     _readScanner = false;
                     lblCommand.Text = @"Component Issue Failed.";
                     break;
                 case PPAState.WaitPreparation:
+                    btnResetState.Enabled = true;
                     ClearPo();
                     lblCommand.ForeColor = Color.Red;
                     _readScanner = false;
@@ -553,6 +575,7 @@ namespace PPAGUI
                     btnStartPreparation.Enabled = true;
                     break;
                 case PPAState.SamePcba:
+                    btnResetState.Enabled = true;
                     lblCommand.ForeColor = Color.Red;
                     _readScanner = false;
                     lblCommand.Text = @"Same PCBA, Please Replace with the New PCBA";
@@ -560,6 +583,7 @@ namespace PPAGUI
                         MessageBoxButtons.OK, MessageBoxIcon.Error);
                     break;
                 case PPAState.SamePump:
+                    btnResetState.Enabled = true;
                     lblCommand.ForeColor = Color.Red;
                     _readScanner = false;
                     lblCommand.Text = @"Same Pump, Please Replace with the New Pump";
@@ -766,6 +790,8 @@ namespace PPAGUI
         private readonly Rs232Scanner _keyenceRs232Scanner;
         private bool _allowClose;
         private int _scanlistSn;
+        private bool _sortAscending;
+        private BindingList<FinishedGood> _bindingList;
 
         private async void Tb_Scanner_KeyUp(object sender, KeyEventArgs e)
         {
@@ -1034,7 +1060,8 @@ namespace PPAGUI
             if (data != null)
             {
                 var list = await Mes.FinishGoodToFinishedGood(data);
-                finishedGoodBindingSource.DataSource = new BindingList<FinishedGood>(list);
+                _bindingList = new BindingList<FinishedGood>(list);
+                finishedGoodBindingSource.DataSource = _bindingList;
                 kryptonDataGridView1.DataSource = finishedGoodBindingSource;
                 Tb_FinishedGoodCounter.Text = list.Length.ToString();
             }
@@ -1096,6 +1123,12 @@ namespace PPAGUI
         {
             try
             {
+                var dlg = MessageBox.Show(@"Are you sure want to call maintenance?", @"Call Maintenance",
+                    MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+                if (dlg == DialogResult.No)
+                {
+                    return;
+                }
                 var result = await Mes.SetResourceStatus(_mesData, "PPA - Internal Downtime", "Maintenance");
                 await GetStatusOfResource();
                 KryptonMessageBox.Show(result ? "Setup status successful" : "Setup status failed");
@@ -1187,10 +1220,18 @@ namespace PPAGUI
             }
         }
 
-        private async void button1_Click(object sender, EventArgs e)
+        private  void button1_Click(object sender, EventArgs e)
         {
-            Tb_SerialNumber.Text = "22811B50N00882520AV";
-           var s = await Mes.GetCurrentContainerStep(_mesData, Tb_SerialNumber.Text);
+            var gg = new String[]{"KKK","mmm"}.Contains("kkk");
+            var g = MesUnitCounter.Load("C:\\WIK-OPEX\\10037810.xti");
+            using (var f = new StreamWriter(".\\containersVC.txt"))
+            {
+                foreach (var container in g.Containers)
+                {
+                    f.WriteLine(container);
+                }
+            }
+         
         }
         private async Task AsyncClosing()
         {
@@ -1203,14 +1244,52 @@ namespace PPAGUI
         }
         private async void Main_FormClosing(object sender, FormClosingEventArgs e)
         {
+            if (!_allowClose)
+            {
+                var dlg = MessageBox.Show(@"Are you sure want to close Application?", @"Close Application",
+                    MessageBoxButtons.YesNo,
+                    MessageBoxIcon.Question);
+                if (dlg == DialogResult.No)
+                {
+                    e.Cancel = true;
+                    return;
+                }
+            }
+
             if (_allowClose)
             {
-                e.Cancel = true;
+                e.Cancel = false;
                 Environment.Exit(Environment.ExitCode);
             }
 
             e.Cancel = true;
             await AsyncClosing();
+        }
+
+        private async void btnSynchronize_Click(object sender, EventArgs e)
+        {
+            if (_mesData == null) return;
+            if (_mesData.ManufacturingOrder == null) return;
+            lblLoading.Visible = true;
+
+            var temp = await Mes.GetFinishGoodRecordSyncWithServer(_mesData, _mesData.ManufacturingOrder?.Name.ToString());
+            var data = temp.ToList();
+
+
+            var list = await Mes.FinishGoodToFinishedGood(data);
+            _bindingList = new BindingList<FinishedGood>(list);
+            finishedGoodBindingSource.DataSource = _bindingList;
+            kryptonDataGridView2.DataSource = finishedGoodBindingSource;
+            Tb_FinishedGoodCounter.Text = list.Length.ToString();
+            lblLoading.Visible = false;
+        }
+
+    
+        private void kryptonDataGridView1_ColumnHeaderMouseClick(object sender, DataGridViewCellMouseEventArgs e)
+        {
+            if (_bindingList==null)return;
+            kryptonDataGridView1.DataSource = _sortAscending ? _bindingList.OrderBy(kryptonDataGridView1.Columns[e.ColumnIndex].DataPropertyName).ToList() : _bindingList.OrderBy(kryptonDataGridView1.Columns[e.ColumnIndex].DataPropertyName).Reverse().ToList();
+            _sortAscending = !_sortAscending;
         }
     }
 }
