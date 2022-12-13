@@ -99,12 +99,6 @@
   <ItemGroup>
     <Compile Include="Enumeration\PPAState.cs" />
     <Compile Include="Hardware\Rs232Scanner.cs" />
-    <Compile Include="Main10.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="Main10.Designer.cs">
-      <DependentUpon>Main10.cs</DependentUpon>
-    </Compile>
     <Compile Include="Main.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -113,9 +107,6 @@
     </Compile>
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <EmbeddedResource Include="Main10.resx">
-      <DependentUpon>Main10.cs</DependentUpon>
-    </EmbeddedResource>
     <EmbeddedResource Include="Main.resx">
       <DependentUpon>Main.cs</DependentUpon>
     </EmbeddedResource>

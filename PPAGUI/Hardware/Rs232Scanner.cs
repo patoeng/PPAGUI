@@ -13,7 +13,7 @@ namespace PPAGUI.Hardware
         private bool _readStart;
         private bool _dataReadValidInvoked;
 
-        public delegate Task DataReadValid(object sender);
+        public delegate void DataReadValid(object sender);
 
         public event DataReadValid OnDataReadValid;
         public bool DataIsValid { get; protected set; }

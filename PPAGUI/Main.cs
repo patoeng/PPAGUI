@@ -99,8 +99,15 @@ namespace PPAGUI
 
             _keyenceRs232Scanner = new Rs232Scanner(serialCom);
             _keyenceRs232Scanner.OnDataReadValid += KeyenceDataReadValid;
+
+            _syncWorker.WorkerReportsProgress = true;
+            _syncWorker.RunWorkerCompleted += SyncWorkerCompleted;
+            _syncWorker.ProgressChanged += SyncWorkerProgress;
+            _syncWorker.DoWork += SyncDoWork;
         }
-        private async Task KeyenceDataReadValid(object sender)
+
+      
+        private   void  KeyenceDataReadValid(object sender)
         {
             if (!_readScanner) Tb_Scanner.Clear();
             _ignoreScanner = true;
@@ -113,7 +120,7 @@ namespace PPAGUI
                 case PPAState.ScanUnitSerialNumber:
                     Tb_SerialNumber.Text = temp;
                     Tb_Scanner.Clear();
-                    await SetPpaState(PPAState.CheckUnitStatus);
+                      SetPpaState(PPAState.CheckUnitStatus);
                     break;
             }
             _ignoreScanner = false;
@@ -144,7 +151,7 @@ namespace PPAGUI
 
         #region FUNCTION USEFULL
 
-        private async Task SetPpaState(PPAState newPpaState)
+        private void SetPpaState(PPAState newPpaState)
         {
             _ppaState = newPpaState;
             switch (_ppaState)
@@ -167,7 +174,7 @@ namespace PPAGUI
 
                     if (_mesData.ResourceStatusDetails == null || _mesData.ResourceStatusDetails?.Availability != "Up")
                     {
-                        await SetPpaState(PPAState.PlaceUnit);
+                          SetPpaState(PPAState.PlaceUnit);
                         break;
                     }
                     // check if fail by maintenance Past Due
@@ -193,7 +200,7 @@ namespace PPAGUI
                     lblCommand.Text = @"Checking Unit Status";
                     if (_mesData.ResourceStatusDetails == null || _mesData.ResourceStatusDetails?.Availability != "Up")
                     {
-                        await SetPpaState(PPAState.PlaceUnit);
+                          SetPpaState(PPAState.PlaceUnit);
                         break;
                     }
                     // check if fail by maintenance Past Due
@@ -204,7 +211,7 @@ namespace PPAGUI
                             MessageBoxButtons.OK, MessageBoxIcon.Error);
                         break;
                     }
-                    var oContainerStatus = await Mes.GetContainerStatusDetails(_mesData, Tb_SerialNumber.Text, _mesData.DataCollectionName);
+                    var oContainerStatus =   Mes.GetContainerStatusDetails(_mesData, Tb_SerialNumber.Text, _mesData.DataCollectionName);
                     if (oContainerStatus != null)
                     {
 
@@ -213,13 +220,13 @@ namespace PPAGUI
                             if (oContainerStatus.Qty == 0)
                             {
                                 _wrongOperationPosition = "Scrap";
-                                await SetPpaState(PPAState.WrongOperation);
+                                  SetPpaState(PPAState.WrongOperation);
                                 break;
                             }
                             if (oContainerStatus.Operation.Name != _mesData.OperationName)
                             {
                                 _wrongOperationPosition = oContainerStatus.Operation.Name;
-                                await SetPpaState(PPAState.WrongOperation);
+                                  SetPpaState(PPAState.WrongOperation);
                                 break;
                             }
 
@@ -276,7 +283,7 @@ namespace PPAGUI
                             if (oContainerStatus.MfgOrderName != null)
                             {
                                 lblLoadingPo.Visible = true;
-                                var mfg = await Mes.GetMfgOrder(_mesData, oContainerStatus.MfgOrderName.ToString());
+                                var mfg =   Mes.GetMfgOrder(_mesData, oContainerStatus.MfgOrderName.ToString());
                                 
                                 if (mfg == null)
                                 {
@@ -284,19 +291,19 @@ namespace PPAGUI
                                     KryptonMessageBox.Show(this, "Failed To Get Manufacturing Order Information", "Check Unit",
                                         MessageBoxButtons.OK, MessageBoxIcon.Error);
                                     
-                                    await SetPpaState(PPAState.ScanUnitSerialNumber);
+                                      SetPpaState(PPAState.ScanUnitSerialNumber);
                                     break;
                                 }
                                 _mesData.SetManufacturingOrder(mfg);
                                 Tb_PO.Text = oContainerStatus.MfgOrderName.ToString();
                                 Tb_Product.Text = oContainerStatus.Product.Name;
                                 Tb_ProductDesc.Text = oContainerStatus.ProductDescription.Value;
-                                var img = await Mes.GetImage(_mesData, oContainerStatus.Product.Name);
+                                var img =   Mes.GetImage(_mesData, oContainerStatus.Product.Name);
                                 pictureBox1.ImageLocation = img.Identifier.Value;
 
                                 if (_mesUnitCounter != null)
                                 {
-                                    await _mesUnitCounter.StopPoll();
+                                      _mesUnitCounter.StopPoll();
                                 }
                                 _mesUnitCounter = MesUnitCounter.Load(MesUnitCounter.GetFileName(mfg.Name.Value));
 
@@ -325,38 +332,38 @@ namespace PPAGUI
 
                         if (_pcbaEnabled && _pumpEnabled)
                         {
-                            await SetPpaState(PPAState.ScanPcbaOrPumpSerialNumber);
+                              SetPpaState(PPAState.ScanPcbaOrPumpSerialNumber);
                             break;
                         }
 
                         if (!_pcbaEnabled && !_pumpEnabled)
                         {
-                            await SetPpaState(PPAState.UpdateMoveInMove);
+                              SetPpaState(PPAState.UpdateMoveInMove);
                             break;
                         }
 
                         if (!_pcbaEnabled)
                         {
-                            await SetPpaState(PPAState.ScanPumpSerialNumber);
+                              SetPpaState(PPAState.ScanPumpSerialNumber);
                             break;
                         }
 
                         if (!_pumpEnabled)
                         {
-                            await SetPpaState(PPAState.ScanPcbaSerialNumber);
+                              SetPpaState(PPAState.ScanPcbaSerialNumber);
                             break;
                         }
                         
 
                     }
-                    var containerStep = await Mes.GetCurrentContainerStep(_mesData, Tb_SerialNumber.Text); // try get operation pos
+                    var containerStep =   Mes.GetCurrentContainerStep(_mesData, Tb_SerialNumber.Text); // try get operation pos
                     if (containerStep != null && !_mesData.OperationName.Contains(containerStep))
                     {
                         _wrongOperationPosition = containerStep;
-                        await SetPpaState(PPAState.WrongOperation);
+                          SetPpaState(PPAState.WrongOperation);
                         break;
                     }
-                    await SetPpaState(PPAState.UnitNotFound);
+                      SetPpaState(PPAState.UnitNotFound);
                     break;
                 case PPAState.UnitNotFound:
                     btnResetState.Enabled = true;
@@ -390,21 +397,21 @@ namespace PPAGUI
                     /*Move In, Move*/
                     try
                     {
-                        oContainerStatus = await Mes.GetContainerStatusDetails(_mesData, Tb_SerialNumber.Text);
+                        oContainerStatus =   Mes.GetContainerStatusDetails(_mesData, Tb_SerialNumber.Text);
                         if (oContainerStatus.ContainerName != null)
                         {
                             lblCommand.Text = @"Container Move In Attempt 1";
-                            var transaction = await Mes.ExecuteMoveIn(_mesData, oContainerStatus.ContainerName.Value, _dMoveIn);
+                            var transaction =   Mes.ExecuteMoveIn(_mesData, oContainerStatus.ContainerName.Value, _dMoveIn);
                             var resultMoveIn = transaction.Result || transaction.Message == "Move-in has already been performed for this operation.";
                             if (!resultMoveIn && transaction.Message.Contains("TimeOut"))
                             {
                                 lblCommand.Text = @"Container Move In Attempt 2";
-                                transaction = await Mes.ExecuteMoveIn(_mesData, oContainerStatus.ContainerName.Value, _dMoveIn);
+                                transaction =   Mes.ExecuteMoveIn(_mesData, oContainerStatus.ContainerName.Value, _dMoveIn);
                                 resultMoveIn = transaction.Result || transaction.Message == "Move-in has already been performed for this operation.";
                                 if (!resultMoveIn && transaction.Message.Contains("TimeOut"))
                                 {
                                     lblCommand.Text = @"Container Move In Attempt 3";
-                                    transaction = await Mes.ExecuteMoveIn(_mesData, oContainerStatus.ContainerName.Value, _dMoveIn);
+                                    transaction =   Mes.ExecuteMoveIn(_mesData, oContainerStatus.ContainerName.Value, _dMoveIn);
                                     resultMoveIn = transaction.Result || transaction.Message == "Move-in has already been performed for this operation.";
                                 }
                             }
@@ -418,32 +425,51 @@ namespace PPAGUI
                                 if (listIssue.Count > 0)
                                 {
                                     lblCommand.Text = @"Container Component Issue.";
-                                    consume = await Mes.ExecuteComponentIssue(_mesData, oContainerStatus.ContainerName.Value,
-                                        listIssue,60000);
+                                    consume =   Mes.ExecuteComponentIssue(_mesData, oContainerStatus.ContainerName.Value,
+                                        listIssue);
                                 }
 
                                 if (consume.Result  || listIssue.Count <=0)
                                 {
+                                  
                                     _dbMoveOut = DateTime.Now;
                                     lblCommand.Text = @"Container Move Standard Attempt 1";
-                                    var resultMoveStd = await Mes.ExecuteMoveStandard(_mesData,
+                                    var resultMoveStd = Mes.ExecuteMoveStandard(_mesData,
                                         oContainerStatus.ContainerName.Value, _dbMoveOut);
                                     if (!resultMoveStd.Result)
                                     {
-                                        _dbMoveOut = DateTime.Now;
-                                        lblCommand.Text = @"Container Move Standard Attempt 2";
-                                        resultMoveStd = await Mes.ExecuteMoveStandard(_mesData,
-                                            oContainerStatus.ContainerName.Value, _dbMoveOut);
-                                        if (!resultMoveStd.Result )
+                                        lblCommand.Text = @"Get Container Position 1";
+                                        var posAfterMoveStd = Mes.GetCurrentContainerStep(_mesData, oContainerStatus.ContainerName.Value);
+                                        resultMoveStd.Result |= !posAfterMoveStd.Contains("PCBA");
+                                        if (!resultMoveStd.Result)
                                         {
                                             _dbMoveOut = DateTime.Now;
-                                            lblCommand.Text = @"Container Move Standard Attempt 3";
-                                            resultMoveStd = await Mes.ExecuteMoveStandard(_mesData,
+                                            lblCommand.Text = @"Container Move Standard Attempt 2";
+                                            resultMoveStd = Mes.ExecuteMoveStandard(_mesData,
                                                 oContainerStatus.ContainerName.Value, _dbMoveOut);
+
+                                            if (!resultMoveStd.Result)
+                                            {
+                                                lblCommand.Text = @"Get Container Position 2";
+                                                posAfterMoveStd = Mes.GetCurrentContainerStep(_mesData, oContainerStatus.ContainerName.Value);
+                                                resultMoveStd.Result |= !posAfterMoveStd.Contains("PCBA");
+                                                if (!resultMoveStd.Result)
+                                                {
+                                                    _dbMoveOut = DateTime.Now;
+                                                    lblCommand.Text = @"Container Move Standard Attempt 3";
+                                                    resultMoveStd = Mes.ExecuteMoveStandard(_mesData,
+                                                        oContainerStatus.ContainerName.Value, _dbMoveOut);
+                                                    if (!resultMoveStd.Result)
+                                                    {
+                                                        lblCommand.Text = @"Get Container Position 3";
+                                                        posAfterMoveStd = Mes.GetCurrentContainerStep(_mesData, oContainerStatus.ContainerName.Value);
+                                                        resultMoveStd.Result |= !posAfterMoveStd.Contains("PCBA");
+                                                    }
+                                                }
+                                            }
                                         }
                                     }
 
-                                   
                                     if (resultMoveStd.Result)
                                     {
                                         if (_pumpEnabled ||_pcbaEnabled)
@@ -476,27 +502,27 @@ namespace PPAGUI
                                                     }
                                                 });
                                             }
-                                            await Mes.ExecuteContainerAttrMaint(_mesData,
+                                              Mes.ExecuteContainerAttrMaint(_mesData,
                                                 oContainerStatus, attrs.ToArray());
                                         }
                                         
                                         lbMoveOut.Text = _dbMoveOut.ToString(Mes.DateTimeStringFormat);
                                         //Update Counter
-                                        var currentPos = await Mes.GetCurrentContainerStep(_mesData, oContainerStatus.ContainerName.Value) ;
-                                        await Mes.UpdateOrCreateFinishGoodRecordToCached(_mesData, oContainerStatus.MfgOrderName?.Value, oContainerStatus.ContainerName.Value, currentPos);
+                                        var currentPos =   Mes.GetCurrentContainerStep(_mesData, oContainerStatus.ContainerName.Value) ;
+                                          Mes.UpdateOrCreateFinishGoodRecordToCached(_mesData, oContainerStatus.MfgOrderName?.Value, oContainerStatus.ContainerName.Value, currentPos);
                                       
                                         _mesUnitCounter.UpdateCounter(oContainerStatus.ContainerName.Value);
                                         MesUnitCounter.Save(_mesUnitCounter);
 
                                         Tb_PpaQty.Text = _mesUnitCounter.Counter.ToString();
                                     }
-                                    await SetPpaState(resultMoveStd.Result
+                                      SetPpaState(resultMoveStd.Result
                                         ? PPAState.ScanUnitSerialNumber
                                         : PPAState.MoveInOkMoveFail);
                                 }
                                 else
                                 {
-                                    await SetPpaState(PPAState.ComponentIssueFailed);
+                                      SetPpaState(PPAState.ComponentIssueFailed);
                                 }
                                
                             }
@@ -508,10 +534,10 @@ namespace PPAGUI
                                     KryptonMessageBox.Show(this, "This resource under maintenance, need to complete!", "Move In",
                                         MessageBoxButtons.OK, MessageBoxIcon.Error);
                                 }
-                                await SetPpaState(PPAState.MoveInFail);
+                                  SetPpaState(PPAState.MoveInFail);
                             }
                         }
-                        else await SetPpaState(PPAState.UnitNotFound);
+                        else   SetPpaState(PPAState.UnitNotFound);
 
 
                     }
@@ -609,11 +635,11 @@ namespace PPAGUI
 
         #region FUNCTION STATUS OF RESOURCE
 
-        private async Task GetStatusMaintenanceDetails()
+        private void GetStatusMaintenanceDetails()
         {
             try
             {
-                var maintenanceStatusDetails = await Mes.GetMaintenanceStatusDetails(_mesData);
+                var maintenanceStatusDetails =   Mes.GetMaintenanceStatusDetails(_mesData);
                 _mesData.SetMaintenanceStatusDetails(maintenanceStatusDetails);
                 if (maintenanceStatusDetails != null)
                 {
@@ -633,7 +659,7 @@ namespace PPAGUI
                         lblResMaintMesg.Visible = true;
                         if (_mesData?.ResourceStatusDetails?.Reason?.Name != "Planned Maintenance")
                         {
-                            await Mes.SetResourceStatus(_mesData, "PPA - Planned Downtime", "Planned Maintenance");
+                              Mes.SetResourceStatus(_mesData, "PPA - Planned Downtime", "Planned Maintenance");
                         }
                         return;
                     }
@@ -662,11 +688,11 @@ namespace PPAGUI
                 EventLogUtil.LogErrorEvent(ex.Source, ex);
             }
         }
-        private async Task GetStatusOfResource()
+        private void GetStatusOfResource()
         {
             try
             {
-                var resourceStatus = await Mes.GetResourceStatusDetails(_mesData);
+                var resourceStatus =   Mes.GetResourceStatusDetails(_mesData);
                 if (resourceStatus != null)
                 {
                     _mesData.SetResourceStatusDetails(resourceStatus);
@@ -698,16 +724,16 @@ namespace PPAGUI
             }
         }
 
-        private async Task GetStatusOfResourceDetail()
+        private void GetStatusOfResourceDetail()
         {
             try
             {
-                var resourceStatus = await Mes.GetResourceStatusDetails(_mesData);
+                var resourceStatus =   Mes.GetResourceStatusDetails(_mesData);
                 if (resourceStatus != null)
                 {
                     _mesData.SetResourceStatusDetails(resourceStatus);
                     if (resourceStatus.Status != null) Cb_StatusCode.Text = resourceStatus.Status.Name;
-                    await Task.Delay(1000);
+                      Task.Delay(1000);
                     if (resourceStatus.Reason != null) Cb_StatusReason.Text = resourceStatus.Reason.Name;
                     if (resourceStatus.Availability != null)
                     {
@@ -739,11 +765,11 @@ namespace PPAGUI
             }
         }
 
-        private async Task GetResourceStatusCodeList()
+        private void GetResourceStatusCodeList()
         {
             try
             {
-                var oStatusCodeList = await Mes.GetListResourceStatusCode(_mesData);
+                var oStatusCodeList =   Mes.GetListResourceStatusCode(_mesData);
                 if (oStatusCodeList != null)
                 {
                     Cb_StatusCode.DataSource = oStatusCodeList.Where(x=>x.Name.IndexOf("PPA", StringComparison.Ordinal)==0).ToList();
@@ -759,15 +785,15 @@ namespace PPAGUI
 
         #region COMPONENT EVENT
 
-        private async void TimerRealtime_Tick(object sender, EventArgs e)
+        private   void TimerRealtime_Tick(object sender, EventArgs e)
         {
-            await GetStatusOfResource();
-            await GetStatusMaintenanceDetails();
+              GetStatusOfResource();
+              GetStatusMaintenanceDetails();
         }
-        private async void btnResetState_Click(object sender, EventArgs e)
+        private   void btnResetState_Click(object sender, EventArgs e)
         {
             if (_ppaState == PPAState.WaitPreparation) return;
-            await SetPpaState(PPAState.ScanUnitSerialNumber);
+              SetPpaState(PPAState.ScanUnitSerialNumber);
             Tb_Scanner.Focus();
         }
 
@@ -793,7 +819,7 @@ namespace PPAGUI
         private bool _sortAscending;
         private BindingList<FinishedGood> _bindingList;
 
-        private async void Tb_Scanner_KeyUp(object sender, KeyEventArgs e)
+        private   void Tb_Scanner_KeyUp(object sender, KeyEventArgs e)
         {
             if (!_readScanner) Tb_Scanner.Clear();
             if (_ignoreScanner) e.Handled = true;
@@ -806,7 +832,7 @@ namespace PPAGUI
                     case PPAState.ScanUnitSerialNumber:
                         Tb_SerialNumber.Text = Tb_Scanner.Text.Trim();
                         Tb_Scanner.Clear();
-                        await SetPpaState(PPAState.CheckUnitStatus);
+                          SetPpaState(PPAState.CheckUnitStatus);
                         break;
                     case PPAState.ScanPcbaSerialNumber:
                     case PPAState.ScanPumpSerialNumber:
@@ -822,13 +848,13 @@ namespace PPAGUI
                                 var s = _mesData.ManufacturingOrder.MaterialList?.Where(x => x.Product?.Name == _pcbaData.PartNumber.Value).ToList();
                                 if (s == null || s.Count == 0)
                                 {
-                                    await SetPpaState(PPAState.ComponentNotFound);
+                                      SetPpaState(PPAState.ComponentNotFound);
                                     break;
                                 }
 
                                 if (s[0].wikScanning!= "X")
                                 {
-                                    await SetPpaState(PPAState.WrongComponent);
+                                      SetPpaState(PPAState.WrongComponent);
                                     break;
                                 }
 
@@ -836,7 +862,7 @@ namespace PPAGUI
                                 {
                                     if (_oldPcba == scannedPcba)
                                     {
-                                        await SetPpaState(PPAState.SamePcba);
+                                          SetPpaState(PPAState.SamePcba);
                                         break;
                                     }
                                 }
@@ -850,7 +876,7 @@ namespace PPAGUI
                                 }
                                 if (!_pumpEnabled || !string.IsNullOrEmpty(_pumpData.RawData))
                                 {
-                                    await SetPpaState(PPAState.UpdateMoveInMove);
+                                      SetPpaState(PPAState.UpdateMoveInMove);
                                     break;
                                 }
                             }
@@ -861,13 +887,13 @@ namespace PPAGUI
                                 var vPcba = _mesData.ManufacturingOrder.MaterialList?.Where(x => x.Product.Name.Contains(str)).ToList();
                                 if (vPcba == null || vPcba.Count == 0)
                                 {
-                                    await SetPpaState(PPAState.ComponentNotFound);
+                                      SetPpaState(PPAState.ComponentNotFound);
                                     break;
                                 }
-                                await SetPpaState(PPAState.WrongComponent);
+                                  SetPpaState(PPAState.WrongComponent);
                                 break;
                             }
-                            await SetPpaState(PPAState.ScanPumpSerialNumber);
+                              SetPpaState(PPAState.ScanPumpSerialNumber);
                             break;
                         }
                         if (scannedPcba.IndexOf("103", StringComparison.Ordinal) == 0 &&_pumpEnabled)
@@ -880,19 +906,19 @@ namespace PPAGUI
                                 var s = _mesData.ManufacturingOrder.MaterialList?.Where(x => x.Product?.Name == _pumpData.PartNumber.Value).ToList();
                                 if (s.Count == 0)
                                 {
-                                    await SetPpaState(PPAState.ComponentNotFound);
+                                      SetPpaState(PPAState.ComponentNotFound);
                                     break;
                                 }
                                 if (s[0].wikScanning != "X")
                                 {
-                                    await SetPpaState(PPAState.WrongComponent);
+                                      SetPpaState(PPAState.WrongComponent);
                                     break;
                                 }
                                 if (_afterRepair)
                                 {
                                     if (_oldPump == scannedPump)
                                     {
-                                        await SetPpaState(PPAState.SamePump);
+                                          SetPpaState(PPAState.SamePump);
                                         break;
                                     }
                                 }
@@ -907,7 +933,7 @@ namespace PPAGUI
 
                                 if (!_pcbaEnabled || !string.IsNullOrEmpty(_pcbaData.RawData))
                                 {
-                                    await SetPpaState(PPAState.UpdateMoveInMove);
+                                      SetPpaState(PPAState.UpdateMoveInMove);
                                     break;
                                 }
                             }
@@ -918,13 +944,13 @@ namespace PPAGUI
                                 var vPump = _mesData.ManufacturingOrder.MaterialList?.Where(x => x.Product.Name.Contains(str)).ToList();
                                 if (vPump == null || vPump.Count == 0)
                                 {
-                                    await SetPpaState(PPAState.ComponentNotFound);
+                                      SetPpaState(PPAState.ComponentNotFound);
                                     break;
                                 }
-                                await SetPpaState(PPAState.WrongComponent);
+                                  SetPpaState(PPAState.WrongComponent);
                                 break;
                             }
-                            await SetPpaState(PPAState.ScanPcbaSerialNumber);
+                              SetPpaState(PPAState.ScanPcbaSerialNumber);
                             break;
                         }
                         else
@@ -935,10 +961,10 @@ namespace PPAGUI
                             var vPcba = _mesData.ManufacturingOrder.MaterialList?.Where(x => x.Product.Name.Contains(str)).ToList();
                             if (vPcba == null || vPcba.Count == 0)
                             {
-                                await SetPpaState(PPAState.ComponentNotFound);
+                                  SetPpaState(PPAState.ComponentNotFound);
                                 break;
                             }
-                            await SetPpaState(PPAState.WrongComponent);
+                              SetPpaState(PPAState.WrongComponent);
                             break;
                         }
 
@@ -949,13 +975,13 @@ namespace PPAGUI
         }
         #endregion
 
-        private async void Main_Load(object sender, EventArgs e)
+        private   void Main_Load(object sender, EventArgs e)
         {
             ClearPo();
-            await GetStatusOfResource();
-            await GetStatusMaintenanceDetails();
-            await GetResourceStatusCodeList();
-            await SetPpaState(PPAState.WaitPreparation);
+              GetStatusOfResource();
+              GetStatusMaintenanceDetails();
+              GetResourceStatusCodeList();
+              SetPpaState(PPAState.WaitPreparation);
         }
 
         private void ClearPo()
@@ -974,17 +1000,17 @@ namespace PPAGUI
 
         }
 
-        private async void Cb_StatusCode_SelectedIndexChanged(object sender, EventArgs e)
+        private   void Cb_StatusCode_SelectedIndexChanged(object sender, EventArgs e)
         {
             try
             {
-                var oStatusCode = await Mes.GetResourceStatusCode(_mesData, Cb_StatusCode.SelectedValue != null ? Cb_StatusCode.SelectedValue.ToString() : "");
+                var oStatusCode =   Mes.GetResourceStatusCode(_mesData, Cb_StatusCode.SelectedValue != null ? Cb_StatusCode.SelectedValue.ToString() : "");
                 if (oStatusCode != null)
                 {
                     Tb_StatusCodeM.Text = oStatusCode.Availability.ToString();
                     if (oStatusCode.ResourceStatusReasons != null)
                     {
-                        var oStatusReason = await Mes.GetResourceStatusReasonGroup(_mesData, oStatusCode.ResourceStatusReasons.Name);
+                        var oStatusReason =   Mes.GetResourceStatusReasonGroup(_mesData, oStatusCode.ResourceStatusReasons.Name);
                         Cb_StatusReason.DataSource = oStatusReason.Entries;
                     }
                     else
@@ -999,22 +1025,22 @@ namespace PPAGUI
                 EventLogUtil.LogErrorEvent(ex.Source, ex);
             }
         }
-        private async void btnSetMachineStatus_Click(object sender, EventArgs e)
+        private   void btnSetMachineStatus_Click(object sender, EventArgs e)
         {
             try
             {
                 var result = false;
                 if (Cb_StatusCode.Text != "" && Cb_StatusReason.Text != "")
                 {
-                    result = await Mes.SetResourceStatus(_mesData, Cb_StatusCode.Text, Cb_StatusReason.Text);
+                    result =   Mes.SetResourceStatus(_mesData, Cb_StatusCode.Text, Cb_StatusReason.Text);
                 }
                 else if (Cb_StatusCode.Text != "")
                 {
-                    result = await Mes.SetResourceStatus(_mesData, Cb_StatusCode.Text, "");
+                    result =   Mes.SetResourceStatus(_mesData, Cb_StatusCode.Text, "");
                 }
 
-                await GetStatusOfResourceDetail();
-                await GetStatusOfResource();
+                  GetStatusOfResourceDetail();
+                  GetStatusOfResource();
                 KryptonMessageBox.Show(result ? "Setup status successful" : "Setup status failed");
 
             }
@@ -1025,7 +1051,7 @@ namespace PPAGUI
             }
         }
 
-        private async void kryptonNavigator1_SelectedPageChanged(object sender, EventArgs e)
+        private   void kryptonNavigator1_SelectedPageChanged(object sender, EventArgs e)
         {
             if (kryptonNavigator1.SelectedIndex == 0)
             {
@@ -1033,7 +1059,7 @@ namespace PPAGUI
             }
             if (kryptonNavigator1.SelectedIndex == 1)
             {
-                await GetStatusOfResourceDetail();
+                  GetStatusOfResourceDetail();
             }
             if (kryptonNavigator1.SelectedIndex == 2)
             {
@@ -1046,20 +1072,20 @@ namespace PPAGUI
             {
                 lblPo.Text = $@"Serial Number of PO: {_mesData.ManufacturingOrder?.Name}";
                 lblLoading.Visible = true;
-                await GetFinishedGoodRecord();
-                lblLoading.Visible = false;
+                  GetFinishedGoodRecord();
+                if (!_syncWorker.IsBusy)lblLoading.Visible = false;
             }
 
         }
-        private async Task GetFinishedGoodRecord()
+        private async  void GetFinishedGoodRecord()
         {
             if (_mesData == null) return;
 
-            var data = await Mes.GetFinishGoodRecordFromCached(_mesData, _mesData.ManufacturingOrder?.Name.ToString());
+            var data =   await Mes.GetFinishGoodRecordFromCached(_mesData, _mesData.ManufacturingOrder?.Name.ToString());
            
             if (data != null)
             {
-                var list = await Mes.FinishGoodToFinishedGood(data);
+                var list =   Mes.FinishGoodToFinishedGood(data);
                 _bindingList = new BindingList<FinishedGood>(list);
                 finishedGoodBindingSource.DataSource = _bindingList;
                 kryptonDataGridView1.DataSource = finishedGoodBindingSource;
@@ -1085,8 +1111,8 @@ namespace PPAGUI
             try
             {
                 _tempPump.SaveToFile();
-            _pumpDataConfig = PumpDataPointConfig.Load(PumpDataPointConfig.FileName);
-            KryptonMessageBox.Show("Pump Setting Saved!");
+                _pumpDataConfig = PumpDataPointConfig.Load(PumpDataPointConfig.FileName);
+                KryptonMessageBox.Show("Pump Setting Saved!");
             }
             catch
             {
@@ -1119,7 +1145,7 @@ namespace PPAGUI
 
         }
 
-        private async void btnCallMaintenance_Click(object sender, EventArgs e)
+        private   void btnCallMaintenance_Click(object sender, EventArgs e)
         {
             try
             {
@@ -1129,8 +1155,8 @@ namespace PPAGUI
                 {
                     return;
                 }
-                var result = await Mes.SetResourceStatus(_mesData, "PPA - Internal Downtime", "Maintenance");
-                await GetStatusOfResource();
+                var result =   Mes.SetResourceStatus(_mesData, "PPA - Internal Downtime", "Maintenance");
+                  GetStatusOfResource();
                 KryptonMessageBox.Show(result ? "Setup status successful" : "Setup status failed");
 
             }
@@ -1188,33 +1214,33 @@ namespace PPAGUI
 
         }
 
-        private async void btnFinishPreparation_Click(object sender, EventArgs e)
+        private   void btnFinishPreparation_Click(object sender, EventArgs e)
         {
             if (_mesData.ResourceStatusDetails == null) return;
             if (_mesData.ResourceStatusDetails.Reason.Name == "Maintenance") return;
             if (_mesData.ResourceStatusDetails?.Reason?.Name == "Planned Maintenance") return;
-            var result = await Mes.SetResourceStatus(_mesData, "PPA - Productive Time", "Pass");
-            await GetStatusOfResource();
+            var result =   Mes.SetResourceStatus(_mesData, "PPA - Productive Time", "Pass");
+              GetStatusOfResource();
             if (result)
             {
                 btnFinishPreparation.Enabled = false;
                 btnStartPreparation.Enabled = true;
-                await SetPpaState(PPAState.ScanUnitSerialNumber);
+                  SetPpaState(PPAState.ScanUnitSerialNumber);
             }
         }
 
-        private async void btnStartPreparation_Click(object sender, EventArgs e)
+        private   void btnStartPreparation_Click(object sender, EventArgs e)
         {
             ClearPo();
             if (_mesData.ResourceStatusDetails == null) return;
             if (_mesData.ResourceStatusDetails?.Reason?.Name == "Maintenance") return;
             if (_mesData.ResourceStatusDetails?.Reason?.Name == "Planned Maintenance") return;
             _mesData.SetManufacturingOrder(null);
-            var result = await Mes.SetResourceStatus(_mesData, "PPA - Planned Downtime", "Preparation");
-            await GetStatusOfResource();
+            var result =   Mes.SetResourceStatus(_mesData, "PPA - Planned Downtime", "Preparation");
+              GetStatusOfResource();
             if (result)
             {
-                await SetPpaState(PPAState.WaitPreparation);
+                  SetPpaState(PPAState.WaitPreparation);
                 btnFinishPreparation.Enabled = true;
                 btnStartPreparation.Enabled = false;
             }
@@ -1233,16 +1259,16 @@ namespace PPAGUI
             }
          
         }
-        private async Task AsyncClosing()
+        private   void  Closing()
         {
             if (_mesUnitCounter != null)
             {
-                await _mesUnitCounter.StopPoll();
+                  _mesUnitCounter.StopPoll();
             }
             _allowClose = true;
             Close();
         }
-        private async void Main_FormClosing(object sender, FormClosingEventArgs e)
+        private   void Main_FormClosing(object sender, FormClosingEventArgs e)
         {
             if (!_allowClose)
             {
@@ -1263,25 +1289,40 @@ namespace PPAGUI
             }
 
             e.Cancel = true;
-            await AsyncClosing();
+               Closing();
         }
 
-        private async void btnSynchronize_Click(object sender, EventArgs e)
+        private BackgroundWorker _syncWorker = new BackgroundWorker();
+        private void SyncWorkerProgress(object sender, ProgressChangedEventArgs e)
         {
-            if (_mesData == null) return;
-            if (_mesData.ManufacturingOrder == null) return;
-            lblLoading.Visible = true;
 
-            var temp = await Mes.GetFinishGoodRecordSyncWithServer(_mesData, _mesData.ManufacturingOrder?.Name.ToString());
-            var data = temp.ToList();
+        }
 
-
-            var list = await Mes.FinishGoodToFinishedGood(data);
+        private void SyncWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
+        {
+            var data = (List<IFinishGoodRecord>) e.Result;
+            var list = Mes.FinishGoodToFinishedGood(data);
             _bindingList = new BindingList<FinishedGood>(list);
             finishedGoodBindingSource.DataSource = _bindingList;
             kryptonDataGridView2.DataSource = finishedGoodBindingSource;
             Tb_FinishedGoodCounter.Text = list.Length.ToString();
             lblLoading.Visible = false;
+        }
+        private void SyncDoWork(object sender, DoWorkEventArgs e)
+        {
+            var temp = Mes.GetFinishGoodRecordSyncWithServer(_mesData, _mesData.ManufacturingOrder?.Name.ToString()).Result;
+            var data = temp == null ? new List<IFinishGoodRecord>() : temp.ToList();
+            e.Result = data;
+        }
+
+
+        private void btnSynchronize_Click(object sender, EventArgs e)
+        {
+            if (_syncWorker.IsBusy) return;
+            if (_mesData == null) return;
+            if (_mesData.ManufacturingOrder == null) return;
+            lblLoading.Visible = true;
+            _syncWorker.RunWorkerAsync();
         }
 
     
