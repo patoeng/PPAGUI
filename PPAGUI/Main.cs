@@ -104,9 +104,185 @@ namespace PPAGUI
             _syncWorker.RunWorkerCompleted += SyncWorkerCompleted;
             _syncWorker.ProgressChanged += SyncWorkerProgress;
             _syncWorker.DoWork += SyncDoWork;
+
+            _moveWorker = new AbortableBackgroundWorker();
+            _moveWorker.WorkerReportsProgress = true;
+            _moveWorker.RunWorkerCompleted += MoveWorkerCompleted;
+            _moveWorker.ProgressChanged += MoveWorkerProgress;
+            _moveWorker.DoWork += MoveWorkerDoWork;
         }
 
-      
+        private void MoveWorkerDoWork(object sender, DoWorkEventArgs e)
+        {
+            /*Move In, Move*/
+            var serial = (string) e.Argument;
+            try
+            {
+                var oContainerStatus = Mes.GetContainerStatusDetails(_mesData, serial);
+                if (oContainerStatus.ContainerName != null)
+                {
+                    _moveWorker.ReportProgress(1, @"Container Move In Attempt 1");
+                    var transaction = Mes.ExecuteMoveIn(_mesData, oContainerStatus.ContainerName.Value, _dMoveIn);
+                    var resultMoveIn = transaction.Result || transaction.Message == "Move-in has already been performed for this operation.";
+                    if (!resultMoveIn && transaction.Message.Contains("TimeOut"))
+                    {
+                        _moveWorker.ReportProgress(1, @"Container Move In Attempt 2");
+                        transaction = Mes.ExecuteMoveIn(_mesData, oContainerStatus.ContainerName.Value, _dMoveIn);
+                        resultMoveIn = transaction.Result || transaction.Message == "Move-in has already been performed for this operation.";
+                        if (!resultMoveIn && transaction.Message.Contains("TimeOut"))
+                        {
+                            _moveWorker.ReportProgress(1, @"Container Move In Attempt 3");
+                            transaction = Mes.ExecuteMoveIn(_mesData, oContainerStatus.ContainerName.Value, _dMoveIn);
+                            resultMoveIn = transaction.Result || transaction.Message == "Move-in has already been performed for this operation.";
+                        }
+                    }
+                    if (resultMoveIn)
+                    {
+                        ThreadHelper.ControlSetText(lbMoveIn, _dMoveIn.ToString(Mes.DateTimeStringFormat));
+
+                        //Component Consume
+                        var listIssue = new List<dynamic>();
+                        if (_pumpEnabled) listIssue.Add(_pumpData.ToIssueActualDetail(_afterRepair ? "Repair" : null));
+                        if (_pcbaEnabled) listIssue.Add(_pcbaData.ToIssueActualDetail(_afterRepair ? "Repair" : null));
+                        var consume = TransactionResult.Create(true);
+                        if (listIssue.Count > 0)
+                        {
+                            _moveWorker.ReportProgress(2, @"Container Component Issue.");;
+                            consume = Mes.ExecuteComponentIssue(_mesData, oContainerStatus.ContainerName.Value,
+                                listIssue);
+                        }
+
+                        if (consume.Result || listIssue.Count <= 0)
+                        {
+                            if (_pumpEnabled || _pcbaEnabled)
+                            {
+                                var attrs = new List<ContainerAttrDetail>();
+                                if (_pumpEnabled)
+                                {
+                                    attrs.AddRange(new[]
+                                    {
+                                                    new ContainerAttrDetail
+                                                    {
+                                                        Name = "PumpModel", AttributeValue = _pumpData.PartNumber.Value,
+                                                        DataType = TrivialTypeEnum.String, IsExpression = false
+                                                    },
+                                                    new ContainerAttrDetail
+                                                    {
+                                                        Name = "PumpSn", AttributeValue = _pumpData.RawData,
+                                                        DataType = TrivialTypeEnum.String, IsExpression = false
+                                                    },
+                                                });
+                                }
+                                if (_pcbaEnabled)
+                                {
+                                    attrs.AddRange(new[]
+                                    {
+                                                    new ContainerAttrDetail
+                                                    {
+                                                        Name = Name = "PcbaSn" ,AttributeValue = _pcbaData.RawData,
+                                                        DataType = TrivialTypeEnum.String, IsExpression = false
+                                                    }
+                                                });
+                                }
+                                Mes.ExecuteContainerAttrMaint(_mesData,
+                                  oContainerStatus, attrs.ToArray());
+                            }
+
+                            _dbMoveOut = DateTime.Now;
+                            _moveWorker.ReportProgress(3, @"Container Move Standard Attempt 1");
+                            var resultMoveStd = Mes.ExecuteMoveStandard(_mesData,
+                                oContainerStatus.ContainerName.Value, _dbMoveOut);
+                            if (!resultMoveStd.Result)
+                            {
+                                _moveWorker.ReportProgress(3, @"Get Container Position 1");
+                                var posAfterMoveStd = Mes.GetCurrentContainerStep(_mesData, oContainerStatus.ContainerName.Value);
+                                resultMoveStd.Result |= !posAfterMoveStd.Contains("PCBA");
+                                if (!resultMoveStd.Result)
+                                {
+                                    _dbMoveOut = DateTime.Now;
+                                    _moveWorker.ReportProgress(3, @"Container Move Standard Attempt 2");
+                                    resultMoveStd = Mes.ExecuteMoveStandard(_mesData,
+                                        oContainerStatus.ContainerName.Value, _dbMoveOut);
+
+                                    if (!resultMoveStd.Result)
+                                    {
+                                        _moveWorker.ReportProgress(3, @"Get Container Position 2");
+                                        posAfterMoveStd = Mes.GetCurrentContainerStep(_mesData, oContainerStatus.ContainerName.Value);
+                                        resultMoveStd.Result |= !posAfterMoveStd.Contains("PCBA");
+                                        if (!resultMoveStd.Result)
+                                        {
+                                            _dbMoveOut = DateTime.Now;
+                                            _moveWorker.ReportProgress(3, @"Container Move Standard Attempt 3");
+                                            resultMoveStd = Mes.ExecuteMoveStandard(_mesData,
+                                                oContainerStatus.ContainerName.Value, _dbMoveOut);
+                                            if (!resultMoveStd.Result)
+                                            {
+                                                _moveWorker.ReportProgress(3, @"Get Container Position 3");
+                                                posAfterMoveStd = Mes.GetCurrentContainerStep(_mesData, oContainerStatus.ContainerName.Value);
+                                                resultMoveStd.Result |= !posAfterMoveStd.Contains("PCBA");
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            if (resultMoveStd.Result)
+                            {
+                                ThreadHelper.ControlSetText(lbMoveOut, _dbMoveOut.ToString(Mes.DateTimeStringFormat));
+                                //Update Counter
+                                var currentPos = Mes.GetCurrentContainerStep(_mesData, oContainerStatus.ContainerName.Value);
+                                Mes.UpdateOrCreateFinishGoodRecordToCached(_mesData, oContainerStatus.MfgOrderName?.Value, oContainerStatus.ContainerName.Value, currentPos);
+
+                                _mesUnitCounter.UpdateCounter(oContainerStatus.ContainerName.Value);
+                                MesUnitCounter.Save(_mesUnitCounter);
+
+                                ThreadHelper.ControlSetText(Tb_PpaQty, _mesUnitCounter.Counter.ToString());
+                            }
+
+                            e.Result = resultMoveStd.Result
+                                ? PPAState.ScanUnitSerialNumber
+                                : PPAState.MoveInOkMoveFail;
+                        }
+                        else
+                        {
+                            e.Result = PPAState.ComponentIssueFailed;
+                        }
+
+                    }
+                    else
+                    {// check if fail by maintenance Past Due
+                       var  transPastDue = Mes.GetMaintenancePastDue(_mesData.MaintenanceStatusDetails);
+                        if (transPastDue.Result)
+                        {
+                            KryptonMessageBox.Show(this, "This resource under maintenance, need to complete!", "Move In",
+                                MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        }
+                        e.Result = (PPAState.MoveInFail);
+                    }
+                }
+                else e.Result=(PPAState.UnitNotFound);
+
+
+            }
+            catch (Exception ex)
+            {
+                e.Result = PPAState.Done;
+            }
+        }
+
+        private void MoveWorkerProgress(object sender, ProgressChangedEventArgs e)
+        {
+            var command = (string) e.UserState;
+            lblCommand.Text = command;
+        }
+
+        private void MoveWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
+        {
+            var states = (PPAState) e.Result;
+            SetPpaState(states);
+        }
+
+
         private   void  KeyenceDataReadValid(object sender)
         {
             if (!_readScanner) Tb_Scanner.Clear();
@@ -236,18 +412,18 @@ namespace PPAGUI
                         lbMoveIn.Text = _dMoveIn.ToString(Mes.DateTimeStringFormat);
                         lbMoveOut.Text = "";
                         //get AfterRepair Atribute
-                        var afterRepair = oContainerStatus.Attributes.Where(x => x.Name == "AfterRepair").ToList();
-                        _afterRepair = afterRepair.Count > 0 && afterRepair[0].AttributeValue == "Yes";
+                        var afterRepair = Mes.GetStringAttribute(oContainerStatus.Attributes,"AfterRepair","No");
+                        _afterRepair = afterRepair == "Yes";
                         lbAfterRepair.Text = _afterRepair ? "Yes" : "No";
                         //get Change Component
-                        var changeComponent = oContainerStatus.Attributes.Where(x => x.Name == "ChangeComponent").ToList();
-                        _changeComponent = changeComponent.Count > 0 && changeComponent[0].AttributeValue == "True";
-                        var changePcba = oContainerStatus.Attributes.Where(x => x.Name == "ChangePcba").ToList();
-                        _changePcba = changePcba.Count > 0 && changePcba[0].AttributeValue == "True";
-                        var changePump = oContainerStatus.Attributes.Where(x => x.Name == "ChangePump").ToList();
-                        _changePump = changePump.Count > 0 && changePump[0].AttributeValue == "True";
+                        var changeComponent = Mes.GetStringAttribute(oContainerStatus.Attributes, "ChangeComponent", "False");
+                        _changeComponent = changeComponent == "True";
+                        var changePcba =  Mes.GetStringAttribute(oContainerStatus.Attributes, "ChangePcba", "False");
+                        _changePcba =  changePcba == "True";
+                        var changePump = Mes.GetStringAttribute(oContainerStatus.Attributes, "ChangePump", "False");
+                        _changePump =changePump == "True";
 
-                       
+
                         ppaScanBindingSource.Clear();
                         if (_changeComponent)
                         {
@@ -258,8 +434,8 @@ namespace PPAGUI
                         {
                             _scanlistPcba = new PpaScan {ScanningList = "PCBA QR Code"};
                                _scanlistPcbaIdx = ppaScanBindingSource.Add(_scanlistPcba);
-                            var oldPcba = oContainerStatus.Attributes.Where(x => x.Name == "PcbaSn").ToList();
-                            if (oldPcba.Count > 0)
+                            var oldPcba = oContainerStatus.Attributes?.Where(x => x.Name == "PcbaSn").ToList();
+                            if (oldPcba != null && oldPcba.Count > 0)
                             {
                                 _oldPcba = oldPcba[0].AttributeValue.Value;
                             }
@@ -269,8 +445,8 @@ namespace PPAGUI
                         {
                             _scanlistPump = new PpaScan {ScanningList = "Pump QR Code"};
                                _scanlistPumpIdx = ppaScanBindingSource.Add(_scanlistPump);
-                            var oldPump = oContainerStatus.Attributes.Where(x => x.Name == "PumpSn").ToList();
-                            if (oldPump.Count > 0)
+                            var oldPump = oContainerStatus.Attributes?.Where(x => x.Name == "PumpSn").ToList();
+                            if (oldPump != null && oldPump.Count > 0)
                             {
                                 _oldPump = oldPump[0].AttributeValue.Value;
                             }
@@ -363,7 +539,7 @@ namespace PPAGUI
                           SetPpaState(PPAState.WrongOperation);
                         break;
                     }
-                      SetPpaState(PPAState.UnitNotFound);
+                    SetPpaState(PPAState.UnitNotFound);
                     break;
                 case PPAState.UnitNotFound:
                     btnResetState.Enabled = true;
@@ -394,158 +570,7 @@ namespace PPAGUI
                 case PPAState.UpdateMoveInMove:
                     _readScanner = false;
                     btnResetState.Enabled = false;
-                    /*Move In, Move*/
-                    try
-                    {
-                        oContainerStatus =   Mes.GetContainerStatusDetails(_mesData, Tb_SerialNumber.Text);
-                        if (oContainerStatus.ContainerName != null)
-                        {
-                            lblCommand.Text = @"Container Move In Attempt 1";
-                            var transaction =   Mes.ExecuteMoveIn(_mesData, oContainerStatus.ContainerName.Value, _dMoveIn);
-                            var resultMoveIn = transaction.Result || transaction.Message == "Move-in has already been performed for this operation.";
-                            if (!resultMoveIn && transaction.Message.Contains("TimeOut"))
-                            {
-                                lblCommand.Text = @"Container Move In Attempt 2";
-                                transaction =   Mes.ExecuteMoveIn(_mesData, oContainerStatus.ContainerName.Value, _dMoveIn);
-                                resultMoveIn = transaction.Result || transaction.Message == "Move-in has already been performed for this operation.";
-                                if (!resultMoveIn && transaction.Message.Contains("TimeOut"))
-                                {
-                                    lblCommand.Text = @"Container Move In Attempt 3";
-                                    transaction =   Mes.ExecuteMoveIn(_mesData, oContainerStatus.ContainerName.Value, _dMoveIn);
-                                    resultMoveIn = transaction.Result || transaction.Message == "Move-in has already been performed for this operation.";
-                                }
-                            }
-                            if (resultMoveIn)
-                            {
-                                //Component Consume
-                                var listIssue = new List<dynamic>();
-                                if (_pumpEnabled) listIssue.Add(_pumpData.ToIssueActualDetail(_afterRepair? "Repair" : null));
-                                if (_pcbaEnabled) listIssue.Add(_pcbaData.ToIssueActualDetail(_afterRepair ? "Repair" : null));
-                                var consume = TransactionResult.Create(true);
-                                if (listIssue.Count > 0)
-                                {
-                                    lblCommand.Text = @"Container Component Issue.";
-                                    consume =   Mes.ExecuteComponentIssue(_mesData, oContainerStatus.ContainerName.Value,
-                                        listIssue);
-                                }
-
-                                if (consume.Result  || listIssue.Count <=0)
-                                {
-                                  
-                                    _dbMoveOut = DateTime.Now;
-                                    lblCommand.Text = @"Container Move Standard Attempt 1";
-                                    var resultMoveStd = Mes.ExecuteMoveStandard(_mesData,
-                                        oContainerStatus.ContainerName.Value, _dbMoveOut);
-                                    if (!resultMoveStd.Result)
-                                    {
-                                        lblCommand.Text = @"Get Container Position 1";
-                                        var posAfterMoveStd = Mes.GetCurrentContainerStep(_mesData, oContainerStatus.ContainerName.Value);
-                                        resultMoveStd.Result |= !posAfterMoveStd.Contains("PCBA");
-                                        if (!resultMoveStd.Result)
-                                        {
-                                            _dbMoveOut = DateTime.Now;
-                                            lblCommand.Text = @"Container Move Standard Attempt 2";
-                                            resultMoveStd = Mes.ExecuteMoveStandard(_mesData,
-                                                oContainerStatus.ContainerName.Value, _dbMoveOut);
-
-                                            if (!resultMoveStd.Result)
-                                            {
-                                                lblCommand.Text = @"Get Container Position 2";
-                                                posAfterMoveStd = Mes.GetCurrentContainerStep(_mesData, oContainerStatus.ContainerName.Value);
-                                                resultMoveStd.Result |= !posAfterMoveStd.Contains("PCBA");
-                                                if (!resultMoveStd.Result)
-                                                {
-                                                    _dbMoveOut = DateTime.Now;
-                                                    lblCommand.Text = @"Container Move Standard Attempt 3";
-                                                    resultMoveStd = Mes.ExecuteMoveStandard(_mesData,
-                                                        oContainerStatus.ContainerName.Value, _dbMoveOut);
-                                                    if (!resultMoveStd.Result)
-                                                    {
-                                                        lblCommand.Text = @"Get Container Position 3";
-                                                        posAfterMoveStd = Mes.GetCurrentContainerStep(_mesData, oContainerStatus.ContainerName.Value);
-                                                        resultMoveStd.Result |= !posAfterMoveStd.Contains("PCBA");
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-
-                                    if (resultMoveStd.Result)
-                                    {
-                                        if (_pumpEnabled ||_pcbaEnabled)
-                                        {
-                                            var attrs = new List<ContainerAttrDetail>();
-                                            if (_pumpEnabled)
-                                            {
-                                                attrs.AddRange(new[]
-                                                {
-                                                    new ContainerAttrDetail
-                                                    {
-                                                        Name = "PumpModel", AttributeValue = _pumpData.PartNumber.Value,
-                                                        DataType = TrivialTypeEnum.String, IsExpression = false
-                                                    },
-                                                    new ContainerAttrDetail
-                                                    {
-                                                        Name = "PumpSn", AttributeValue = _pumpData.RawData,
-                                                        DataType = TrivialTypeEnum.String, IsExpression = false
-                                                    },
-                                                });
-                                            }
-                                            if (_pcbaEnabled)
-                                            {
-                                                attrs.AddRange(new[]
-                                                {
-                                                    new ContainerAttrDetail
-                                                    {
-                                                        Name = Name = "PcbaSn" ,AttributeValue = _pcbaData.RawData,
-                                                        DataType = TrivialTypeEnum.String, IsExpression = false
-                                                    }
-                                                });
-                                            }
-                                              Mes.ExecuteContainerAttrMaint(_mesData,
-                                                oContainerStatus, attrs.ToArray());
-                                        }
-                                        
-                                        lbMoveOut.Text = _dbMoveOut.ToString(Mes.DateTimeStringFormat);
-                                        //Update Counter
-                                        var currentPos =   Mes.GetCurrentContainerStep(_mesData, oContainerStatus.ContainerName.Value) ;
-                                          Mes.UpdateOrCreateFinishGoodRecordToCached(_mesData, oContainerStatus.MfgOrderName?.Value, oContainerStatus.ContainerName.Value, currentPos);
-                                      
-                                        _mesUnitCounter.UpdateCounter(oContainerStatus.ContainerName.Value);
-                                        MesUnitCounter.Save(_mesUnitCounter);
-
-                                        Tb_PpaQty.Text = _mesUnitCounter.Counter.ToString();
-                                    }
-                                      SetPpaState(resultMoveStd.Result
-                                        ? PPAState.ScanUnitSerialNumber
-                                        : PPAState.MoveInOkMoveFail);
-                                }
-                                else
-                                {
-                                      SetPpaState(PPAState.ComponentIssueFailed);
-                                }
-                               
-                            }
-                            else
-                            {// check if fail by maintenance Past Due
-                                transPastDue = Mes.GetMaintenancePastDue(_mesData.MaintenanceStatusDetails);
-                                if (transPastDue.Result)
-                                {
-                                    KryptonMessageBox.Show(this, "This resource under maintenance, need to complete!", "Move In",
-                                        MessageBoxButtons.OK, MessageBoxIcon.Error);
-                                }
-                                  SetPpaState(PPAState.MoveInFail);
-                            }
-                        }
-                        else   SetPpaState(PPAState.UnitNotFound);
-
-
-                    }
-                    catch (Exception ex)
-                    {
-                        ex.Source = typeof(Program).Assembly.GetName().Name == ex.Source ? MethodBase.GetCurrentMethod()?.Name : MethodBase.GetCurrentMethod()?.Name + "." + ex.Source;
-                        EventLogUtil.LogErrorEvent(ex.Source, ex);
-                    }
+                    _moveWorker.RunWorkerAsync(Tb_SerialNumber.Text);
                     break;
                 case PPAState.MoveSuccess:
                     btnResetState.Enabled = true;
@@ -890,10 +915,10 @@ namespace PPAGUI
                                       SetPpaState(PPAState.ComponentNotFound);
                                     break;
                                 }
-                                  SetPpaState(PPAState.WrongComponent);
+                                SetPpaState(PPAState.WrongComponent);
                                 break;
                             }
-                              SetPpaState(PPAState.ScanPumpSerialNumber);
+                            SetPpaState(PPAState.ScanPumpSerialNumber);
                             break;
                         }
                         if (scannedPcba.IndexOf("103", StringComparison.Ordinal) == 0 &&_pumpEnabled)
@@ -947,10 +972,10 @@ namespace PPAGUI
                                       SetPpaState(PPAState.ComponentNotFound);
                                     break;
                                 }
-                                  SetPpaState(PPAState.WrongComponent);
+                                SetPpaState(PPAState.WrongComponent);
                                 break;
                             }
-                              SetPpaState(PPAState.ScanPcbaSerialNumber);
+                            SetPpaState(PPAState.ScanPcbaSerialNumber);
                             break;
                         }
                         else
@@ -964,7 +989,7 @@ namespace PPAGUI
                                   SetPpaState(PPAState.ComponentNotFound);
                                 break;
                             }
-                              SetPpaState(PPAState.WrongComponent);
+                            SetPpaState(PPAState.WrongComponent);
                             break;
                         }
 
@@ -977,7 +1002,7 @@ namespace PPAGUI
 
         private   void Main_Load(object sender, EventArgs e)
         {
-            ClearPo();
+              ClearPo();
               GetStatusOfResource();
               GetStatusMaintenanceDetails();
               GetResourceStatusCodeList();
@@ -1039,8 +1064,8 @@ namespace PPAGUI
                     result =   Mes.SetResourceStatus(_mesData, Cb_StatusCode.Text, "");
                 }
 
-                  GetStatusOfResourceDetail();
-                  GetStatusOfResource();
+                GetStatusOfResourceDetail();
+                GetStatusOfResource();
                 KryptonMessageBox.Show(result ? "Setup status successful" : "Setup status failed");
 
             }
@@ -1051,7 +1076,7 @@ namespace PPAGUI
             }
         }
 
-        private   void kryptonNavigator1_SelectedPageChanged(object sender, EventArgs e)
+        private async  void kryptonNavigator1_SelectedPageChanged(object sender, EventArgs e)
         {
             if (kryptonNavigator1.SelectedIndex == 0)
             {
@@ -1072,12 +1097,12 @@ namespace PPAGUI
             {
                 lblPo.Text = $@"Serial Number of PO: {_mesData.ManufacturingOrder?.Name}";
                 lblLoading.Visible = true;
-                  GetFinishedGoodRecord();
+                  await GetFinishedGoodRecord();
                 if (!_syncWorker.IsBusy)lblLoading.Visible = false;
             }
 
         }
-        private async  void GetFinishedGoodRecord()
+        private async  Task GetFinishedGoodRecord()
         {
             if (_mesData == null) return;
 
@@ -1293,6 +1318,8 @@ namespace PPAGUI
         }
 
         private BackgroundWorker _syncWorker = new BackgroundWorker();
+        private readonly AbortableBackgroundWorker _moveWorker;
+
         private void SyncWorkerProgress(object sender, ProgressChangedEventArgs e)
         {
 

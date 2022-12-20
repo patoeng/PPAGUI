@@ -337,7 +337,7 @@ namespace PPAGUI
             this.kryptonPage4});
             this.kryptonNavigator1.Palette = this.PPAPalette;
             this.kryptonNavigator1.PaletteMode = ComponentFactory.Krypton.Toolkit.PaletteMode.Custom;
-            this.kryptonNavigator1.SelectedIndex = 3;
+            this.kryptonNavigator1.SelectedIndex = 0;
             this.kryptonNavigator1.Size = new System.Drawing.Size(1215, 591);
             this.kryptonNavigator1.StateCommon.Bar.BarPaddingInside = new System.Windows.Forms.Padding(0);
             this.kryptonNavigator1.StateCommon.Bar.BarPaddingOnly = new System.Windows.Forms.Padding(0);
@@ -672,6 +672,13 @@ namespace PPAGUI
             this.btnResetState.StateCommon.Content.ShortText.Color1 = System.Drawing.Color.White;
             this.btnResetState.StateCommon.Content.ShortText.Color2 = System.Drawing.Color.White;
             this.btnResetState.StateCommon.Content.ShortText.Font = new System.Drawing.Font("Microsoft Sans Serif", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.btnResetState.StateDisabled.Back.Color1 = System.Drawing.Color.Silver;
+            this.btnResetState.StateDisabled.Back.Color2 = System.Drawing.Color.Silver;
+            this.btnResetState.StateDisabled.Border.Color1 = System.Drawing.Color.Silver;
+            this.btnResetState.StateDisabled.Border.Color2 = System.Drawing.Color.Silver;
+            this.btnResetState.StateDisabled.Border.DrawBorders = ((ComponentFactory.Krypton.Toolkit.PaletteDrawBorders)((((ComponentFactory.Krypton.Toolkit.PaletteDrawBorders.Top | ComponentFactory.Krypton.Toolkit.PaletteDrawBorders.Bottom) 
+            | ComponentFactory.Krypton.Toolkit.PaletteDrawBorders.Left) 
+            | ComponentFactory.Krypton.Toolkit.PaletteDrawBorders.Right)));
             this.btnResetState.StatePressed.Back.Color1 = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(192)))), ((int)(((byte)(0)))));
             this.btnResetState.StatePressed.Back.Color2 = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(192)))), ((int)(((byte)(0)))));
             this.btnResetState.StatePressed.Back.ColorAngle = 135F;
