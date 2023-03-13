@@ -36,7 +36,7 @@ namespace PPAGUI
             Text = Mes.AddVersionNumber(Text + " MiniMe");
 #elif Ariel
             var name = "PCBA & Pump Assy Ariel";
-            Text = Mes.AddVersionNumber(name);
+            Text = Mes.AddVersionNumber(Text + " Ariel");
 #endif
             _mesData = new Mes("Repair", AppSettings.Resource, name);
 
@@ -475,7 +475,7 @@ namespace PPAGUI
                                 Tb_Product.Text = oContainerStatus.Product.Name;
                                 Tb_ProductDesc.Text = oContainerStatus.ProductDescription.Value;
                                 var img =   Mes.GetImage(_mesData, oContainerStatus.Product.Name);
-                                pictureBox1.ImageLocation = img.Identifier.Value;
+                                if (img!=null) pictureBox1.ImageLocation = img.Identifier.Value;
 
                                 if (_mesUnitCounter != null)
                                 {
@@ -893,7 +893,7 @@ namespace PPAGUI
                                 }
                                 Tb_PCBAPartNumber.Text = _pcbaData.PartNumber?.Value;
                                 Tb_PCBASerialNumber.Text = scannedPcba;
-                                _pcbaData.SetQtyRequired(s[0].QtyRequired.Value);
+                                _pcbaData.SetQtyRequired(s[0].QtyRequired == null ? 0: s[0].QtyRequired.Value);
                                 if (_afterRepair && _scanlistPcba!=null)
                                 {
                                     _scanlistPcba.Status = "Completed";
@@ -929,7 +929,7 @@ namespace PPAGUI
                             {
                                 _pumpData = (PumpData)transactPump.Data;
                                 var s = _mesData.ManufacturingOrder.MaterialList?.Where(x => x.Product?.Name == _pumpData.PartNumber.Value).ToList();
-                                if (s.Count == 0)
+                                if (s == null || s.Count == 0)
                                 {
                                       SetPpaState(PPAState.ComponentNotFound);
                                     break;
@@ -949,7 +949,7 @@ namespace PPAGUI
                                 }
                                 Tb_PumpPartNumber.Text = _pumpData.PartNumber?.Value;
                                 Tb_PumpSerialNumber.Text = scannedPump;
-                                _pumpData.SetQtyRequired(s[0].QtyRequired.Value);
+                                _pumpData.SetQtyRequired(s[0].QtyRequired == null? 0 : s[0].QtyRequired.Value);
                                 if (_afterRepair && _scanlistPump != null)
                                 {
                                     _scanlistPump.Status = "Completed";
@@ -1310,7 +1310,7 @@ namespace PPAGUI
             if (_allowClose)
             {
                 e.Cancel = false;
-                Environment.Exit(Environment.ExitCode);
+                //Environment.Exit(Environment.ExitCode);
             }
 
             e.Cancel = true;
