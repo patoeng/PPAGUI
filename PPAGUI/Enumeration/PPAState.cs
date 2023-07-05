@@ -21,6 +21,7 @@
         WaitPreparation,
         ComponentIssueFailed,
         SamePcba,
-        SamePump
+        SamePump,
+        ScanMacAddress,
     }
 }

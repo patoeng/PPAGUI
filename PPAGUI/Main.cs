@@ -21,6 +21,7 @@ using PPAGUI.Hardware;
 using PPAGUI.Properties;
 using Environment = System.Environment;
 using System.Linq.Dynamic;
+using System.Text.RegularExpressions;
 
 namespace PPAGUI
 {
@@ -33,11 +34,13 @@ namespace PPAGUI
 
 #if MiniMe
             var  name = "PCBA & Pump Assy Minime";
-            Text = Mes.AddVersionNumber(Text + " MiniMe");
 #elif Ariel
             var name = "PCBA & Pump Assy Ariel";
-            Text = Mes.AddVersionNumber(Text + " Ariel");
+#elif Gaia
+            var name = "PCBA & Pump Assy GAIA";
+            panelBluetooth.Visible = true;
 #endif
+            Text = name + @" V1.1";
             _mesData = new Mes("Repair", AppSettings.Resource, name);
 
             lbTitle.Text = AppSettings.Resource;
@@ -154,9 +157,11 @@ namespace PPAGUI
 
                         if (consume.Result || listIssue.Count <= 0)
                         {
+                            var attrs = new List<ContainerAttrDetail>();
+
                             if (_pumpEnabled || _pcbaEnabled)
                             {
-                                var attrs = new List<ContainerAttrDetail>();
+                                
                                 if (_pumpEnabled)
                                 {
                                     attrs.AddRange(new[]
@@ -184,10 +189,27 @@ namespace PPAGUI
                                                     }
                                                 });
                                 }
-                                Mes.ExecuteContainerAttrMaint(_mesData,
-                                  oContainerStatus, attrs.ToArray());
+                                
                             }
-
+#if Gaia
+                            if (_isBluetoothProduct)
+                            {
+                                attrs.AddRange(new[]
+                                {
+                                    new ContainerAttrDetail
+                                    {
+                                        Name = Name = "GaiaBluetoothMac" ,AttributeValue = _scannedMacAdress,
+                                        DataType = TrivialTypeEnum.String, IsExpression = false
+                                    }
+                                });
+                            }
+                           
+#endif
+                            if (attrs?.Count > 0)
+                            {
+                                Mes.ExecuteContainerAttrMaint(_mesData,
+                                    oContainerStatus, attrs.ToArray());
+                            }
                             _dbMoveOut = DateTime.Now;
                             _moveWorker.ReportProgress(3, @"Container Move Standard Attempt 1");
                             var resultMoveStd = Mes.ExecuteMoveStandard(_mesData,
@@ -408,6 +430,11 @@ namespace PPAGUI
 
                          
                         }
+                        //Check if bluetooth
+#if Gaia
+                        var s = oContainerStatus.ContainerName.ToString();
+                        _isBluetoothProduct = s.Length > 14 && (s[13] == '3');
+#endif
                         _dMoveIn = DateTime.Now;
                         lbMoveIn.Text = _dMoveIn.ToString(Mes.DateTimeStringFormat);
                         lbMoveOut.Text = "";
@@ -514,7 +541,14 @@ namespace PPAGUI
 
                         if (!_pcbaEnabled && !_pumpEnabled)
                         {
-                              SetPpaState(PPAState.UpdateMoveInMove);
+#if Gaia
+                            if (_isBluetoothProduct)
+                            {
+                                SetPpaState(PPAState.ScanMacAddress);
+                                break;
+                            }
+#endif
+                            SetPpaState(PPAState.UpdateMoveInMove);
                             break;
                         }
 
@@ -564,6 +598,12 @@ namespace PPAGUI
                     Tb_Scanner.Enabled = true;
                     _readScanner = true;
                     lblCommand.Text = @"Scan Pump Or PCBA Serial Number!";
+                    break;
+                case PPAState.ScanMacAddress:
+                    btnResetState.Enabled = true;
+                    Tb_Scanner.Enabled = true;
+                    _readScanner = true;
+                    lblCommand.Text = @"Scan Bluetooth MAC Address!";
                     break;
                 case PPAState.Done:
                     break;
@@ -641,6 +681,9 @@ namespace PPAGUI
                     KryptonMessageBox.Show(this, "Same Pump, Please Replace with the New Pump", "Scan Pump",
                         MessageBoxButtons.OK, MessageBoxIcon.Error);
                     break;
+                
+                default:
+                    throw new ArgumentOutOfRangeException();
             }
         }
 
@@ -653,6 +696,8 @@ namespace PPAGUI
             Tb_PCBAPartNumber.Clear();
             Tb_PumpPartNumber.Clear();
             ppaScanBindingSource.Clear();
+            TB_BluetoothMacAddress.Clear();
+            TB_BluetoohPartNumber.Clear();
             kryptonDataGridView2.Visible = false;
         }
 
@@ -958,7 +1003,15 @@ namespace PPAGUI
 
                                 if (!_pcbaEnabled || !string.IsNullOrEmpty(_pcbaData.RawData))
                                 {
-                                      SetPpaState(PPAState.UpdateMoveInMove);
+#if Gaia
+                                    if (_isBluetoothProduct)
+                                    {
+                                        SetPpaState(PPAState.ScanMacAddress);
+                                        break;
+                                    }
+#endif
+
+                                    SetPpaState(PPAState.UpdateMoveInMove);
                                     break;
                                 }
                             }
@@ -992,12 +1045,39 @@ namespace PPAGUI
                             SetPpaState(PPAState.WrongComponent);
                             break;
                         }
+                    case PPAState.ScanMacAddress:
+                        var scannedMacAddress = Tb_Scanner.Text.Trim();
+                        var valid = ValidateMac(scannedMacAddress);
+                        if (valid)
+                        {
+                            TB_BluetoothMacAddress.Text = scannedMacAddress;
+                            TB_BluetoohPartNumber.Text = scannedMacAddress;
+                            _scannedMacAdress = scannedMacAddress;
+                            SetPpaState(PPAState.UpdateMoveInMove);
+                        }
+                        else
+                        {
+                            TB_BluetoothMacAddress.Text = "";
+                            _scannedMacAdress = "";
+                            SetPpaState(PPAState.WrongComponent);
+                        }
+                        break;
 
                 }
                 _ignoreScanner = false;
                 Tb_Scanner.Clear();
             }
         }
+
+        private bool ValidateMac(string scannedMacAddress)
+        {
+            var temp = scannedMacAddress.Replace(":", "").Replace("-","");
+            var r = new Regex(
+                "^(?:[0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2}|(?:[0-9a-fA-F]{2}-){5}[0-9a-fA-F]{2}|(?:[0-9a-fA-F]{2}){5}[0-9a-fA-F]{2}$");
+            return r.IsMatch(temp);
+
+        }
+
         #endregion
 
         private   void Main_Load(object sender, EventArgs e)
@@ -1284,15 +1364,15 @@ namespace PPAGUI
             }
          
         }
-        private   void  Closing()
-        {
-            if (_mesUnitCounter != null)
-            {
-                  _mesUnitCounter.StopPoll();
-            }
-            _allowClose = true;
-            Close();
-        }
+        //private   void  Closing()
+        //{
+        //    if (_mesUnitCounter != null)
+        //    {
+        //          _mesUnitCounter.StopPoll();
+        //    }
+        //    _allowClose = true;
+        //    Close();
+        //}
         private   void Main_FormClosing(object sender, FormClosingEventArgs e)
         {
             if (!_allowClose)
@@ -1313,12 +1393,14 @@ namespace PPAGUI
                 //Environment.Exit(Environment.ExitCode);
             }
 
-            e.Cancel = true;
-               Closing();
+            e.Cancel = false;
+            //   Closing();
         }
 
         private BackgroundWorker _syncWorker = new BackgroundWorker();
         private readonly AbortableBackgroundWorker _moveWorker;
+        private string _scannedMacAdress;
+        private bool _isBluetoothProduct;
 
         private void SyncWorkerProgress(object sender, ProgressChangedEventArgs e)
         {
