@@ -23,5 +23,6 @@
         SamePcba,
         SamePump,
         ScanMacAddress,
+        BluetoothUpdateFail
     }
 }

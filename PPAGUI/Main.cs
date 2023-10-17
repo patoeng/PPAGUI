@@ -22,6 +22,7 @@ using PPAGUI.Properties;
 using Environment = System.Environment;
 using System.Linq.Dynamic;
 using System.Text.RegularExpressions;
+using MesData.Common;
 
 namespace PPAGUI
 {
@@ -40,7 +41,7 @@ namespace PPAGUI
             var name = "PCBA & Pump Assy GAIA";
             panelBluetooth.Visible = true;
 #endif
-            Text = name + @" V1.1";
+            Text = name + @" V1.4";
             _mesData = new Mes("Repair", AppSettings.Resource, name);
 
             lbTitle.Text = AppSettings.Resource;
@@ -50,7 +51,7 @@ namespace PPAGUI
 
             _pumpDataConfig = PumpDataPointConfig.Load(PumpDataPointConfig.FileName);
             _pumpDataConfig?.SaveToFile();
-
+           
             kryptonNavigator1.SelectedIndex = 0;
             EventLogUtil.LogEvent("Application Start");
 
@@ -90,6 +91,7 @@ namespace PPAGUI
             }
             //Instantiate Setting
             var setting = new Settings();
+            InitStandByTimer(setting.WeighingDatabaseConnection, this);
             //Init Com
             var serialCom = new SerialPort
             {
@@ -203,13 +205,28 @@ namespace PPAGUI
                                     }
                                 });
                             }
-                           
+
 #endif
                             if (attrs?.Count > 0)
                             {
                                 Mes.ExecuteContainerAttrMaint(_mesData,
                                     oContainerStatus, attrs.ToArray());
                             }
+#if Gaia
+                            if (_isBluetoothProduct)
+                            {
+                                var maint = new ContainerMaintDetail
+                                {
+                                    wikBTMAC = _scannedMacAdress
+                                };
+                                var btUpdate = Mes.ExecuteContainerMaintenance(_mesData, oContainerStatus.ContainerName.ToString(), maint);
+                                if (!btUpdate)
+                                {
+                                    e.Result = PPAState.BluetoothUpdateFail;
+                                    return;
+                                }
+                            }
+#endif
                             _dbMoveOut = DateTime.Now;
                             _moveWorker.ReportProgress(3, @"Container Move Standard Attempt 1");
                             var resultMoveStd = Mes.ExecuteMoveStandard(_mesData,
@@ -301,9 +318,49 @@ namespace PPAGUI
         private void MoveWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
         {
             var states = (PPAState) e.Result;
+            _startStandByTimer = true;
             SetPpaState(states);
         }
+        #region Auto Standby
+        public void InitStandByTimer(string connection, Form parentForm)
+        {
+            _standByConnection = connection;
+            _autoStandBy = new AutoStandBy(_mesData, parentForm)
+            {
+                StandbyStatus = "PPA - Standby Time",
+                DefaultPreStandbyStatus = "PPA - Productive Time",
+                DefaultPreStandbyStatusReason = "Pass",
+                MaintenanceStatus = "PPA - Internal Downtime"
+            };
+            _autoStandBy.AutoStandByStatusUpdated += AutoStandByStatusUpdated;
+            _autoStandBy.Init(connection);
+            tbPrePopUp.Text = _autoStandBy.AutoStandBySetting.PrePopUpTimer.ToString("0.##");
+            tbPreStandBy.Text = _autoStandBy.AutoStandBySetting.PreStandByTimer.ToString("0.##");
+            _startStandByTimer = true;
+            tmrAutoStandByChecker.Start();
+        }
 
+        private void AutoStandByStatusUpdated(StandByState standbystate)
+        {
+            GetStatusOfResource();
+        }
+
+
+        public void RestoreStatusPreStandBy()
+        {
+            _autoStandBy.RestoreStatusPreStandBy(_autoStandBy.StatusPreStandby);
+        }
+
+        public void StartStandByTimer()
+        {
+            _autoStandBy?.StartStandByTimer();
+        }
+        public void StopStandByTimer()
+        {
+            _autoStandBy?.StopPopUpTimer();
+            _autoStandBy?.StopStandByTimer();
+        }
+        #endregion
 
         private   void  KeyenceDataReadValid(object sender)
         {
@@ -372,9 +429,10 @@ namespace PPAGUI
 
                     if (_mesData.ResourceStatusDetails == null || _mesData.ResourceStatusDetails?.Availability != "Up")
                     {
-                          SetPpaState(PPAState.PlaceUnit);
+                        SetPpaState(PPAState.PlaceUnit);
                         break;
                     }
+
                     // check if fail by maintenance Past Due
                     var transPastDue = Mes.GetMaintenancePastDue(_mesData.MaintenanceStatusDetails);
                     if (transPastDue.Result)
@@ -383,6 +441,7 @@ namespace PPAGUI
                             MessageBoxButtons.OK, MessageBoxIcon.Error);
                         break;
                     }
+
                     Tb_Scanner.Enabled = true;
                     _readScanner = true;
                     ActiveControl = Tb_Scanner;
@@ -395,21 +454,25 @@ namespace PPAGUI
                     _oldPcba = "";
                     _oldPump = "";
                     _keyenceRs232Scanner.StopRead();
+                    RestoreStatusPreStandBy();
                     lblCommand.Text = @"Checking Unit Status";
                     if (_mesData.ResourceStatusDetails == null || _mesData.ResourceStatusDetails?.Availability != "Up")
                     {
-                          SetPpaState(PPAState.PlaceUnit);
+                        SetPpaState(PPAState.PlaceUnit);
                         break;
                     }
+
                     // check if fail by maintenance Past Due
-                     transPastDue = Mes.GetMaintenancePastDue(_mesData.MaintenanceStatusDetails);
+                    transPastDue = Mes.GetMaintenancePastDue(_mesData.MaintenanceStatusDetails);
                     if (transPastDue.Result)
                     {
                         KryptonMessageBox.Show(this, "This resource under maintenance, need to complete!", "Move In",
                             MessageBoxButtons.OK, MessageBoxIcon.Error);
                         break;
                     }
-                    var oContainerStatus =   Mes.GetContainerStatusDetails(_mesData, Tb_SerialNumber.Text, _mesData.DataCollectionName);
+
+                    var oContainerStatus =
+                        Mes.GetContainerStatusDetails(_mesData, Tb_SerialNumber.Text, _mesData.DataCollectionName);
                     if (oContainerStatus != null)
                     {
 
@@ -418,17 +481,18 @@ namespace PPAGUI
                             if (oContainerStatus.Qty == 0)
                             {
                                 _wrongOperationPosition = "Scrap";
-                                  SetPpaState(PPAState.WrongOperation);
-                                break;
-                            }
-                            if (oContainerStatus.Operation.Name != _mesData.OperationName)
-                            {
-                                _wrongOperationPosition = oContainerStatus.Operation.Name;
-                                  SetPpaState(PPAState.WrongOperation);
+                                SetPpaState(PPAState.WrongOperation);
                                 break;
                             }
 
-                         
+                            if (oContainerStatus.Operation.Name != _mesData.OperationName)
+                            {
+                                _wrongOperationPosition = oContainerStatus.Operation.Name;
+                                SetPpaState(PPAState.WrongOperation);
+                                break;
+                            }
+
+
                         }
                         //Check if bluetooth
 #if Gaia
@@ -439,28 +503,30 @@ namespace PPAGUI
                         lbMoveIn.Text = _dMoveIn.ToString(Mes.DateTimeStringFormat);
                         lbMoveOut.Text = "";
                         //get AfterRepair Atribute
-                        var afterRepair = Mes.GetStringAttribute(oContainerStatus.Attributes,"AfterRepair","No");
+                        var afterRepair = Mes.GetStringAttribute(oContainerStatus.Attributes, "AfterRepair", "No");
                         _afterRepair = afterRepair == "Yes";
                         lbAfterRepair.Text = _afterRepair ? "Yes" : "No";
                         //get Change Component
-                        var changeComponent = Mes.GetStringAttribute(oContainerStatus.Attributes, "ChangeComponent", "False");
+                        var changeComponent =
+                            Mes.GetStringAttribute(oContainerStatus.Attributes, "ChangeComponent", "False");
                         _changeComponent = changeComponent == "True";
-                        var changePcba =  Mes.GetStringAttribute(oContainerStatus.Attributes, "ChangePcba", "False");
-                        _changePcba =  changePcba == "True";
+                        var changePcba = Mes.GetStringAttribute(oContainerStatus.Attributes, "ChangePcba", "False");
+                        _changePcba = changePcba == "True";
                         var changePump = Mes.GetStringAttribute(oContainerStatus.Attributes, "ChangePump", "False");
-                        _changePump =changePump == "True";
+                        _changePump = changePump == "True";
 
 
                         ppaScanBindingSource.Clear();
                         if (_changeComponent)
                         {
-                            _scanlistSn = ppaScanBindingSource.Add(new PpaScan { ScanningList = "Appliacne S/N", Status = "Completed"});
+                            _scanlistSn = ppaScanBindingSource.Add(new PpaScan
+                                {ScanningList = "Appliacne S/N", Status = "Completed"});
                         }
 
                         if (_changePcba)
                         {
                             _scanlistPcba = new PpaScan {ScanningList = "PCBA QR Code"};
-                               _scanlistPcbaIdx = ppaScanBindingSource.Add(_scanlistPcba);
+                            _scanlistPcbaIdx = ppaScanBindingSource.Add(_scanlistPcba);
                             var oldPcba = oContainerStatus.Attributes?.Where(x => x.Name == "PcbaSn").ToList();
                             if (oldPcba != null && oldPcba.Count > 0)
                             {
@@ -471,7 +537,7 @@ namespace PPAGUI
                         if (_changePump)
                         {
                             _scanlistPump = new PpaScan {ScanningList = "Pump QR Code"};
-                               _scanlistPumpIdx = ppaScanBindingSource.Add(_scanlistPump);
+                            _scanlistPumpIdx = ppaScanBindingSource.Add(_scanlistPump);
                             var oldPump = oContainerStatus.Attributes?.Where(x => x.Name == "PumpSn").ToList();
                             if (oldPump != null && oldPump.Count > 0)
                             {
@@ -481,37 +547,41 @@ namespace PPAGUI
 
                         kryptonDataGridView2.Visible = _changeComponent || _changePcba || _changePump;
 
-                        if (oContainerStatus.MfgOrderName != null && _mesData.ManufacturingOrder == null || _mesData.ManufacturingOrder?.Name!= oContainerStatus.MfgOrderName)
+                        if (oContainerStatus.MfgOrderName != null && _mesData.ManufacturingOrder == null ||
+                            _mesData.ManufacturingOrder?.Name != oContainerStatus.MfgOrderName)
                         {
                             if (oContainerStatus.MfgOrderName != null)
                             {
                                 lblLoadingPo.Visible = true;
-                                var mfg =   Mes.GetMfgOrder(_mesData, oContainerStatus.MfgOrderName.ToString());
-                                
+                                var mfg = Mes.GetMfgOrder(_mesData, oContainerStatus.MfgOrderName.ToString());
+
                                 if (mfg == null)
                                 {
                                     lblLoadingPo.Visible = false;
-                                    KryptonMessageBox.Show(this, "Failed To Get Manufacturing Order Information", "Check Unit",
+                                    KryptonMessageBox.Show(this, "Failed To Get Manufacturing Order Information",
+                                        "Check Unit",
                                         MessageBoxButtons.OK, MessageBoxIcon.Error);
-                                    
-                                      SetPpaState(PPAState.ScanUnitSerialNumber);
+
+                                    SetPpaState(PPAState.ScanUnitSerialNumber);
                                     break;
                                 }
+
                                 _mesData.SetManufacturingOrder(mfg);
                                 Tb_PO.Text = oContainerStatus.MfgOrderName.ToString();
                                 Tb_Product.Text = oContainerStatus.Product.Name;
                                 Tb_ProductDesc.Text = oContainerStatus.ProductDescription.Value;
-                                var img =   Mes.GetImage(_mesData, oContainerStatus.Product.Name);
-                                if (img!=null) pictureBox1.ImageLocation = img.Identifier.Value;
+                                var img = Mes.GetImage(_mesData, oContainerStatus.Product.Name);
+                                if (img != null) pictureBox1.ImageLocation = img.Identifier.Value;
 
                                 if (_mesUnitCounter != null)
                                 {
-                                      _mesUnitCounter.StopPoll();
+                                    _mesUnitCounter.StopPoll();
                                 }
+
                                 _mesUnitCounter = MesUnitCounter.Load(MesUnitCounter.GetFileName(mfg.Name.Value));
 
                                 _mesUnitCounter.SetActiveMfgOrder(mfg.Name.Value);
-                               
+
                                 _mesUnitCounter.InitPoll(_mesData);
                                 _mesUnitCounter.StartPoll();
                                 MesUnitCounter.Save(_mesUnitCounter);
@@ -535,7 +605,7 @@ namespace PPAGUI
 
                         if (_pcbaEnabled && _pumpEnabled)
                         {
-                              SetPpaState(PPAState.ScanPcbaOrPumpSerialNumber);
+                            SetPpaState(PPAState.ScanPcbaOrPumpSerialNumber);
                             break;
                         }
 
@@ -554,25 +624,28 @@ namespace PPAGUI
 
                         if (!_pcbaEnabled)
                         {
-                              SetPpaState(PPAState.ScanPumpSerialNumber);
+                            SetPpaState(PPAState.ScanPumpSerialNumber);
                             break;
                         }
 
                         if (!_pumpEnabled)
                         {
-                              SetPpaState(PPAState.ScanPcbaSerialNumber);
+                            SetPpaState(PPAState.ScanPcbaSerialNumber);
                             break;
                         }
-                        
+
 
                     }
-                    var containerStep =   Mes.GetCurrentContainerStep(_mesData, Tb_SerialNumber.Text); // try get operation pos
+
+                    var containerStep =
+                        Mes.GetCurrentContainerStep(_mesData, Tb_SerialNumber.Text); // try get operation pos
                     if (containerStep != null && !_mesData.OperationName.Contains(containerStep))
                     {
                         _wrongOperationPosition = containerStep;
-                          SetPpaState(PPAState.WrongOperation);
+                        SetPpaState(PPAState.WrongOperation);
                         break;
                     }
+
                     SetPpaState(PPAState.UnitNotFound);
                     break;
                 case PPAState.UnitNotFound:
@@ -610,6 +683,8 @@ namespace PPAGUI
                 case PPAState.UpdateMoveInMove:
                     _readScanner = false;
                     btnResetState.Enabled = false;
+                    _startStandByTimer = false;
+                    RestoreStatusPreStandBy();
                     _moveWorker.RunWorkerAsync(Tb_SerialNumber.Text);
                     break;
                 case PPAState.MoveSuccess:
@@ -681,9 +756,34 @@ namespace PPAGUI
                     KryptonMessageBox.Show(this, "Same Pump, Please Replace with the New Pump", "Scan Pump",
                         MessageBoxButtons.OK, MessageBoxIcon.Error);
                     break;
-                
+                case PPAState.BluetoothUpdateFail:
+                    btnResetState.Enabled = true;
+                    lblCommand.ForeColor = Color.Red;
+                    _readScanner = false;
+                    lblCommand.Text = @"Bluetooth Data Update Failed";
+                    break;
                 default:
                     throw new ArgumentOutOfRangeException();
+            }
+
+            switch (_ppaState)
+            {
+                case PPAState.ScanUnitSerialNumber:
+                case PPAState.MoveInOkMoveFail:
+                case PPAState.MoveInFail:
+                case PPAState.WrongOperation:
+                case PPAState.ComponentNotFound:
+                case PPAState.Done:
+                case PPAState.WrongComponent:
+                case PPAState.WrongProductionOrder:
+                case PPAState.ComponentIssueFailed:
+                case PPAState.SamePcba:
+                case PPAState.SamePump:
+                case PPAState.ScanMacAddress:
+                case PPAState.BluetoothUpdateFail:
+                    _startStandByTimer = true;
+                    break;
+
             }
         }
 
@@ -767,11 +867,13 @@ namespace PPAGUI
                 {
                     _mesData.SetResourceStatusDetails(resourceStatus);
                     if (resourceStatus.Status != null) Tb_StatusCode.Text = resourceStatus.Reason?.Name;
+                    // if (resourceStatus.Reason?.Name != "Standby") _autoStandBy?.ResetStandBy();
+                    if (resourceStatus.Reason?.Name == "Standby") _autoStandBy.SetToStandBy(); else _autoStandBy.ResetStandBy();
                     if (resourceStatus.Availability != null)
                     {
                         if (resourceStatus.Availability.Value == "Up")
                         {
-                            Tb_StatusCode.StateCommon.Content.Color1 = resourceStatus.Reason?.Name == "Quality Inspection" ? Color.Orange : Color.Green;
+                            Tb_StatusCode.StateCommon.Content.Color1 = resourceStatus.Reason?.Name == "Standby" ? Color.Yellow : Color.Green;
                         }
                         else if (resourceStatus.Availability.Value == "Down")
                         {
@@ -902,7 +1004,7 @@ namespace PPAGUI
                     case PPAState.ScanUnitSerialNumber:
                         Tb_SerialNumber.Text = Tb_Scanner.Text.Trim();
                         Tb_Scanner.Clear();
-                          SetPpaState(PPAState.CheckUnitStatus);
+                        SetPpaState(PPAState.CheckUnitStatus);
                         break;
                     case PPAState.ScanPcbaSerialNumber:
                     case PPAState.ScanPumpSerialNumber:
@@ -946,7 +1048,12 @@ namespace PPAGUI
                                 }
                                 if (!_pumpEnabled || !string.IsNullOrEmpty(_pumpData.RawData))
                                 {
-                                      SetPpaState(PPAState.UpdateMoveInMove);
+                                    if (_isBluetoothProduct)
+                                    {
+                                        SetPpaState(PPAState.ScanMacAddress);
+                                        break;
+                                    }
+                                    SetPpaState(PPAState.UpdateMoveInMove);
                                     break;
                                 }
                             }
@@ -1074,7 +1181,7 @@ namespace PPAGUI
             var temp = scannedMacAddress.Replace(":", "").Replace("-","");
             var r = new Regex(
                 "^(?:[0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2}|(?:[0-9a-fA-F]{2}-){5}[0-9a-fA-F]{2}|(?:[0-9a-fA-F]{2}){5}[0-9a-fA-F]{2}$");
-            return r.IsMatch(temp);
+            return r.IsMatch(temp) && temp.Length==12;
 
         }
 
@@ -1137,6 +1244,7 @@ namespace PPAGUI
                 var result = false;
                 if (Cb_StatusCode.Text != "" && Cb_StatusReason.Text != "")
                 {
+                    if (Cb_StatusReason.Text == "Standby") _autoStandBy.SetToStandBy();else _autoStandBy.ResetStandBy();
                     result =   Mes.SetResourceStatus(_mesData, Cb_StatusCode.Text, Cb_StatusReason.Text);
                 }
                 else if (Cb_StatusCode.Text != "")
@@ -1401,6 +1509,9 @@ namespace PPAGUI
         private readonly AbortableBackgroundWorker _moveWorker;
         private string _scannedMacAdress;
         private bool _isBluetoothProduct;
+        private string _standByConnection;
+        private AutoStandBy _autoStandBy;
+        private bool _startStandByTimer;
 
         private void SyncWorkerProgress(object sender, ProgressChangedEventArgs e)
         {
@@ -1440,6 +1551,20 @@ namespace PPAGUI
             if (_bindingList==null)return;
             kryptonDataGridView1.DataSource = _sortAscending ? _bindingList.OrderBy(kryptonDataGridView1.Columns[e.ColumnIndex].DataPropertyName).ToList() : _bindingList.OrderBy(kryptonDataGridView1.Columns[e.ColumnIndex].DataPropertyName).Reverse().ToList();
             _sortAscending = !_sortAscending;
+        }
+
+        private void btnSaveSetting_Click(object sender, EventArgs e)
+        {
+            _autoStandBy.SetStandByTimer((double)tbPreStandBy.Value, (double)tbPrePopUp.Value);
+            _autoStandBy.SaveCurrentSetting(_standByConnection);
+        }
+
+        private void tmrAutoStandByChecker_Tick(object sender, EventArgs e)
+        {
+            tmrAutoStandByChecker.Stop();
+            lbPreStandBy.Text = (_autoStandBy.AutoStandBySetting.PreStandByTimer - _autoStandBy.PreStandByTimer.ElapsedMilliseconds/1000f).ToString("0.#");
+            if (_startStandByTimer) StartStandByTimer(); else StopStandByTimer();
+            tmrAutoStandByChecker.Start();
         }
     }
 }

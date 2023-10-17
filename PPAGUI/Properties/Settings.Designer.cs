@@ -67,5 +67,15 @@ namespace PPAGUI.Properties {
                 return ((global::System.IO.Ports.StopBits)(this["StopBits"]));
             }
         }
+        
+        [global::System.Configuration.ApplicationScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("Data Source=\"127.0.0.1\";Initial Catalog=\"9630\";User id=\"wik\";Password=\"passwordwi" +
+            "k\";")]
+        public string WeighingDatabaseConnection {
+            get {
+                return ((string)(this["WeighingDatabaseConnection"]));
+            }
+        }
     }
 }
