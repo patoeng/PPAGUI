@@ -1,4 +1,4 @@
-﻿using ComponentFactory.Krypton.Toolkit;
+using ComponentFactory.Krypton.Toolkit;
 using MesData;
 using MesData.Login;
 using MesData.Ppa;

@@ -189,6 +189,7 @@ namespace PPAGUI
             this.panel4 = new System.Windows.Forms.Panel();
             this.tableLayoutPanel9 = new System.Windows.Forms.TableLayoutPanel();
             this.kryptonPanel1 = new ComponentFactory.Krypton.Toolkit.KryptonPanel();
+            this.label23 = new System.Windows.Forms.Label();
             this.lbPreStandBy = new System.Windows.Forms.Label();
             this.button1 = new System.Windows.Forms.Button();
             this.lblResMaintMesg = new System.Windows.Forms.Label();
@@ -197,7 +198,7 @@ namespace PPAGUI
             this.panel5 = new System.Windows.Forms.Panel();
             this.Logo = new System.Windows.Forms.PictureBox();
             this.tmrAutoStandByChecker = new System.Windows.Forms.Timer(this.components);
-            this.label23 = new System.Windows.Forms.Label();
+            this.lbStandbyState = new System.Windows.Forms.Label();
             this.tableLayoutPanel1.SuspendLayout();
             this.tableLayoutPanel2.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.kryptonNavigator1)).BeginInit();
@@ -2804,6 +2805,7 @@ namespace PPAGUI
             // 
             // kryptonPanel1
             // 
+            this.kryptonPanel1.Controls.Add(this.lbStandbyState);
             this.kryptonPanel1.Controls.Add(this.label23);
             this.kryptonPanel1.Controls.Add(this.lbPreStandBy);
             this.kryptonPanel1.Controls.Add(this.button1);
@@ -2819,6 +2821,16 @@ namespace PPAGUI
             this.kryptonPanel1.StateCommon.Color1 = System.Drawing.Color.FromArgb(((int)(((byte)(250)))), ((int)(((byte)(252)))), ((int)(((byte)(252)))));
             this.kryptonPanel1.StateCommon.Color2 = System.Drawing.Color.FromArgb(((int)(((byte)(250)))), ((int)(((byte)(252)))), ((int)(((byte)(252)))));
             this.kryptonPanel1.TabIndex = 1;
+            // 
+            // label23
+            // 
+            this.label23.AutoSize = true;
+            this.label23.Font = new System.Drawing.Font("Segoe UI", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.label23.Location = new System.Drawing.Point(915, 6);
+            this.label23.Name = "label23";
+            this.label23.Size = new System.Drawing.Size(137, 21);
+            this.label23.TabIndex = 61;
+            this.label23.Text = "Pre Standby Timer";
             // 
             // lbPreStandBy
             // 
@@ -2896,18 +2908,18 @@ namespace PPAGUI
             // 
             // tmrAutoStandByChecker
             // 
-            this.tmrAutoStandByChecker.Interval = 1000;
+            this.tmrAutoStandByChecker.Interval = 1;
             this.tmrAutoStandByChecker.Tick += new System.EventHandler(this.tmrAutoStandByChecker_Tick);
             // 
-            // label23
+            // lbStandbyState
             // 
-            this.label23.AutoSize = true;
-            this.label23.Font = new System.Drawing.Font("Segoe UI", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.label23.Location = new System.Drawing.Point(915, 6);
-            this.label23.Name = "label23";
-            this.label23.Size = new System.Drawing.Size(137, 21);
-            this.label23.TabIndex = 61;
-            this.label23.Text = "Pre Standby Timer";
+            this.lbStandbyState.AutoSize = true;
+            this.lbStandbyState.Font = new System.Drawing.Font("Segoe UI", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.lbStandbyState.Location = new System.Drawing.Point(915, 36);
+            this.lbStandbyState.Name = "lbStandbyState";
+            this.lbStandbyState.Size = new System.Drawing.Size(137, 21);
+            this.lbStandbyState.TabIndex = 62;
+            this.lbStandbyState.Text = "Pre Standby Timer";
             // 
             // Main
             // 
@@ -3061,10 +3073,6 @@ namespace PPAGUI
         private System.Windows.Forms.Label lbMoveIn;
         private System.Windows.Forms.Label label13;
         private ComponentFactory.Krypton.Toolkit.KryptonPanel kryptonPanel7;
-        private ComponentFactory.Krypton.Toolkit.KryptonGroupBox kryptonGroupBox1;
-        private ComponentFactory.Krypton.Toolkit.KryptonButton btnResetState;
-        private System.Windows.Forms.Label lblCommand;
-        private ComponentFactory.Krypton.Toolkit.KryptonTextBox Tb_Scanner;
         private ComponentFactory.Krypton.Toolkit.KryptonPanel kryptonPanel8;
         private ComponentFactory.Krypton.Toolkit.KryptonButton btnCallMaintenance;
         private System.Windows.Forms.TableLayoutPanel tableLayoutPanel5;
@@ -3186,6 +3194,11 @@ namespace PPAGUI
         private System.Windows.Forms.Timer tmrAutoStandByChecker;
         private System.Windows.Forms.Label lbPreStandBy;
         private System.Windows.Forms.Label label23;
+        private ComponentFactory.Krypton.Toolkit.KryptonGroupBox kryptonGroupBox1;
+        private ComponentFactory.Krypton.Toolkit.KryptonButton btnResetState;
+        private System.Windows.Forms.Label lblCommand;
+        private ComponentFactory.Krypton.Toolkit.KryptonTextBox Tb_Scanner;
+        private System.Windows.Forms.Label lbStandbyState;
     }
 }
 
